@@ -1,0 +1,6 @@
+fastapi
+requests
+paho-mqtt
+uvicorn
+pigpio
+PyYAML

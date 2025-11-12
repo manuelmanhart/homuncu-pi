@@ -1,30 +1,37 @@
 from abc import ABC, abstractmethod
 import logging
-from app.config_loader import CONFIG
+#from app.config_loader import CONFIG
+from app.services import CONFIG_SERVICE
 
 class AbstractBaseService(ABC):
     """
     Abstrakte Basisklasse für alle Services
     """
     def __init__(self, name: str):
+        # initbase variables
         self.name = name
+        self.state = None
         self.logger = logging.getLogger(name)
         self.logger.setLevel(logging.DEBUG)
         self.logger.debug(f"[{self.name}] Service init...")
+        # init config
+        self.config = self.getServiceConfig()
+        # init variables based on state or config
         self.installed = False
-        self.active = False
-        self.state = ""
-        self.configFile = f'{name}.config.json'
-        self.config = {}
-        self.initStatus()
+        self.active = self.config.get("active", False)
 
     def status(self) -> dict:
         return {
             "service": self.name,
             "installed": self.installed,
             "active": self.active,
-            "state": self.state
+            "state": self.readState()
         }
+
+    @abstractmethod
+    def readState(self):
+        """Implement me in subclasses"""
+        raise NotImplementedError
 
     def doInstall(self) -> dict:
         if self.installed:
@@ -71,10 +78,6 @@ class AbstractBaseService(ABC):
             except Exception as e:
                 print(f"[ERROR] Konfiguration laden fehlgeschlagen: {e}")
 
-    #@abstractmethod
-    def initStatus(self) -> bool:
-        return NotImplementedError
-
     def install(self) -> bool:
         return True
 
@@ -89,15 +92,11 @@ class AbstractBaseService(ABC):
     def deactivate(self) -> bool:
         return True
 
-    @abstractmethod
     def configure(self, config: dict) -> bool:
         return True
 
-    def updateState(self) -> bool:
-        return True
-
     def getServiceConfig(self) -> dict:
-        return CONFIG.get("services", {}).get(self.name, {})
+        return CONFIG_SERVICE.loadConfig().get("services", {}).get(self.name, {})
 
     def getGlobalConfig(self, scope) -> dict:
-        return CONFIG.get(scope, {})
+        return CONFIG_SERVICE.loadConfig().get(scope, {})

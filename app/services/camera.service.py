@@ -5,8 +5,8 @@ class CameraService(AbstractBaseService):
     def __init__(self):
         super().__init__("camera")
 
-    def initStatus(self) -> bool:
-        return True
+    def readState(self):
+        return False
 
     def activate(self) -> bool:
         result = subprocess.run(

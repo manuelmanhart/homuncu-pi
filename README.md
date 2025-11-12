@@ -108,6 +108,13 @@ You just need to call the following bash script and it will guide you through th
 <!-- ROADMAP -->
 ## Changelog
 
+**0.5**
+* Moved default_config.yaml file to project root
+* Moved installService.sh to a more generic service.sh file
+* Updated all services
+* Added support for environment variables within the config file
+* Moved config loader to global config class
+
 **0.4**
 * Refactoring of base service
 * Added config loader

@@ -1,4 +1,3 @@
-from datetime import datetime
 import subprocess
 import json
 import threading
@@ -12,44 +11,18 @@ class UpdateService(AbstractSensorService):
     def __init__(self):
         super().__init__("update")
 
-    def initStatus(self) -> bool:
-        # initialer Status
-        self.installed = True
-        self.active = True # TBD should be read from a file on startup
-        #self.state = self.readState()
-        return True
-
-    def configure(self, config: dict):
-        """Konfiguration aus JSON übernehmen"""
-        self.interval = config.get("interval", self.interval)
-        self.mqtt_enabled = config.get("mqtt_enabled", self.mqtt_enabled)
-        self.mqtt_host = config.get("mqtt_host", self.mqtt_host)
-        self.mqtt_topic = config.get("mqtt_topic", self.mqtt_topic)
-
-    def activate(self):
-        if not self.active:
-            self.thread = threading.Thread(target=self._loop, daemon=True)
-            self.thread.start()
-        self.state = self.readState()
-        return True
-
-    def deactivate(self):
-        if self.active:
-            self.thread.stop()
-        return False
-
-    def readState(self):
+    def readNewState(self):
         """Prüft System- und Script-Updates"""
-        now = datetime.now()
 
         return {
-            "date": now.strftime("%Y-%m-%d"), # 2025-09-19
-            "time": now.strftime("%H:%M:%S"), # 18:30:15
             "updates": {
                 "system": self._checkSystemUpdates(),
                 "script": self._checkScriptUpdates()
             }
         }
+
+    def hasSignificantChange(self, oldState, newState) -> bool:
+        return oldState["updates"]["system"] != newState["updates"]["system"] or oldState["updates"]["script"] != newState["updates"]["script"];
 
     def _checkSystemUpdates(self) -> dict:
         """apt-get Upgrade prüfen"""
@@ -87,14 +60,3 @@ class UpdateService(AbstractSensorService):
             return {"error": f"HTTP {response.status_code}"}
         except Exception as e:
             return {"error": str(e)}
-
-    def send_mqtt(self, data: dict):
-        """Ergebnis an MQTT-Broker senden"""
-        try:
-            client = mqtt.Client()
-            client.connect(self.mqtt_host)
-            payload = json.dumps(data)
-            client.publish(self.mqtt_topic, payload)
-            client.disconnect()
-        except Exception as e:
-            print(f"[ERROR] MQTT Publish failed: {e}")

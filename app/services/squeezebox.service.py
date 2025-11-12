@@ -5,7 +5,7 @@ class SqueezeboxService(AbstractBaseService):
     def __init__(self):
         super().__init__("squeezebox")
 
-    def initStatus(self) -> bool:
+    def readState(self) -> bool:
         result = subprocess.run(
             ["systemctl", "is-enabled", "squeezelite"],
             capture_output=True,
@@ -18,7 +18,7 @@ class SqueezeboxService(AbstractBaseService):
             text=True
         )
         self.active = (result.returncode == 0 and result.stdout.strip() == "active")
-        return True
+        return self.active
 
     def install(self) -> bool:
         return True

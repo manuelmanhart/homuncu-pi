@@ -1,0 +1,26 @@
+mqtt:
+  host: 192.168.1.5
+  port: 1883
+  base_topic: home/${HOSTNAME}
+
+services:
+  temperature:
+    active: true
+    pollInterval: 30
+    publishInterval: 600
+    temperatureTolerance: 0.5
+    humidityTolerance: 4
+    humidityCorrection40: 0
+    humidityCorrection75: 0
+    temperatureCorrection: 0
+    humidityTolerance: 4
+  camera:
+    active: False
+  healthcheck:
+    active: True
+  reedswitch:
+    active: False
+  update:
+    active: true
+  squeezebox:
+    active: true

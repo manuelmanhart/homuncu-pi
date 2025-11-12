@@ -1,22 +1,23 @@
-import importlib.util
 import importlib
-import pkgutil
+import importlib.util
 import inspect
 import os
 import sys
 
+from pathlib import Path
 from fastapi import FastAPI, HTTPException
 from app.services.abstract_base_service import AbstractBaseService
 from app.services.abstract_sensor_service import AbstractSensorService
+from app.services import CONFIG_SERVICE
+#from app.services.config.service import ConfigService
 import app.services # unser Service-Package
+from app.env_var_resolver import resolveVariable
 
 # Dictionary aller geladenen Services
 services = {}
-
 SERVICES_DIR = os.path.join(os.path.dirname(__file__), "services")
-
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))  # app/
-PROJECT_ROOT = os.path.dirname(BASE_DIR)              # raspi-controller/
+PROJECT_ROOT = os.path.dirname(BASE_DIR)               # raspi-controller/
 sys.path.insert(0, PROJECT_ROOT)
 
 def discover_services():
@@ -43,18 +44,35 @@ def discover_services():
 
     print(f"[DEBUG] Insgesamt {len(services)} Service(s) geladen")
 
+#discover_services()
 
-discover_services()
+# set hostname for full state
+hostname = resolveVariable("${HOSTNAME}")
 
-app = FastAPI(title="Pi Controller API", version="0.4")
+# read version from file VERSION in project root
+base_dir = os.path.join(os.path.dirname( __file__ ), '..')
+versionFileFullPath = os.path.join(base_dir, "VERSION")
+versionFile = Path(versionFileFullPath)
+if versionFile.exists():
+    version = versionFile.read_text().strip()
+else:
+    version = "0.0.0-dev"
+
+app = FastAPI(title="Raspi Controller API", version=version)
 
 # -------- API Endpoints --------
+
+@app.on_event("startup")
+def start_services():
+    discover_services()
+    print(f"config: {CONFIG_SERVICE.loadConfig()}")
 
 @app.get("/")
 def root():
     return {
         "name": app.title,
         "version": app.version,
+        "hostname": hostname,
         "services": listServicesWithState()
     }
 
@@ -65,15 +83,13 @@ def listServicesWithState():
     """
     result = []
     for name, service in services.items():
+        print(f"fetching status from {name}")
         try:
             status = service.status()
         except Exception as e:
-            status = {"active": False, "error": str(e)}
+            status = {"name": name, "active": False, "error": str(e)}
 
-        result.append({
-            "name": name,
-            "status": status
-        })
+        result.append(status)
     return result
 
 @app.get("/services")
@@ -86,7 +102,7 @@ def service_status(name: str):
     service = services.get(name)
     if not service:
         raise HTTPException(404, f"Service {name} not found")
-    return service.updateState()
+    return service.status()
 
 @app.post("/services/{name}/install")
 def service_install(name: str):

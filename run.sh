@@ -27,7 +27,7 @@ if [ $INSTALL_REQUIREMENTS == 0 ]; then
 elif [ -f "$REQ_FILE" ]; then
     echo "[INFO] Prüfe/Installiere Python-Abhängigkeiten..."
     pip install --upgrade pip >/dev/null
-    pip install -r "$REQ_FILE" >/dev/null
+    pip install  --prefer-binary -r "$REQ_FILE" -v
 else
     echo "[WARN] Keine requirements.txt gefunden!"
 fi

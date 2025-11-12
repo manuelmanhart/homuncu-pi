@@ -1,26 +1,12 @@
 from app.services.abstract_sensor_service import AbstractSensorService
 import subprocess
 
+# TODO implement correctly
 class ReedSwitchService(AbstractSensorService):
     def __init__(self):
         super().__init__("reedswitch")
 
-    def initStatus(self) -> bool:
-        result = subprocess.run(
-            ["systemctl", "is-enabled", "squeezelite"],
-            capture_output=True,
-            text=True
-        )
-        self.installed = (result.returncode == 0)
-        result = subprocess.run(
-            ["systemctl", "is-active", "squeezelite"],
-            capture_output=True,
-            text=True
-        )
-        self.active = (result.returncode == 0 and result.stdout.strip() == "active")
-        return True
-
-    def readState(self):
+    def readNewState(self):
         return True
 
     def install(self) -> bool:

@@ -7,24 +7,20 @@ sys.path.append(os.path.dirname(__file__))
 from app.services.temp_sensor import sensor
 
 class TemperatureService(AbstractSensorService):
-    def __init__(self, gpio_pin=4, sensor_type="DHT22"):
+    def __init__(self, gpioPin=4, sensor_type="DHT22"):
         super().__init__("temperature")
-        cfg = self.getServiceConfig()
-        self.temperatureTolerance=cfg.get("temperatureTolerance", 0.5)
-        self.humidityTolerance=cfg.get("humidityTolerance", 0.5)
-        self.humidityCorrection40=cfg.get("humidityCorrection40", 0)
-        self.humidityCorrection75=cfg.get("humidityCorrection75", 0)
-        self.temperatureCorrection=cfg.get("temperatureCorrection", 0)
-        self.gpio_pin = gpio_pin
+        self.temperatureTolerance=self.config.get("temperatureTolerance", 0.5)
+        self.humidityTolerance=self.config.get("humidityTolerance", 0.5)
+        self.humidityCorrection40=self.config.get("humidityCorrection40", 0)
+        self.humidityCorrection75=self.config.get("humidityCorrection75", 0)
+        self.temperatureCorrection=self.config.get("temperatureCorrection", 0)
+        self.gpioPin = gpioPin
         self.sensor_type = sensor_type
-
-        if not self.isServiceActive():
-            self.activate()
 
         self.pi = pigpio.pi()
         if not self.pi.connected:
             raise RuntimeError("Kann keine Verbindung zum pigpio daemon herstellen")
-        self.sensor = sensor(self.pi, self.gpio_pin)
+        self.sensor = sensor(self.pi, self.gpioPin)
         self.sensor.trigger()  # initial trigger
 
     def readNewState(self):
@@ -72,7 +68,7 @@ class TemperatureService(AbstractSensorService):
         self.active = self.active and (result.returncode == 0 and result.stdout.strip() == "active")
         return self.active
 
-    def activate(self) -> bool:
+    def install(self) -> bool:
         result = subprocess.run(
             ["apt", "update"],
             capture_output=True,
@@ -95,11 +91,7 @@ class TemperatureService(AbstractSensorService):
         )
         return (result.returncode == 0)
 
-    def deactivate(self) -> bool:
+    def uninstall(self) -> bool:
         self.sensor.cancel()
         self.pi.stop()
-        return True
-
-    def configure(self, config: dict) -> bool:
-        self.config.update(config)
         return True

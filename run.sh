@@ -1,38 +1,40 @@
 #!/bin/bash
 set -e
 
-# Basis-Verzeichnis des Projekts
+# Define script variables
 BASE_DIR="$(cd "$(dirname "$0")"; pwd)"
 VENV_DIR="$BASE_DIR/venv"
-REQ_FILE="$BASE_DIR/requirements.txt"
+REQ_FILE_NAME="requirements.txt"
+REQ_FILE_PATH="$BASE_DIR/$REQ_FILE_NAME"
 INSTALL_REQUIREMENTS=0
+PORT=8000
+VERSION=$(cat $BASE_DIR/VERSION)
 
 if [ "$1" == "-u" ]; then
     INSTALL_REQUIREMENTS=1
 fi
 
-# Virtuelle Umgebung anlegen, falls nicht vorhanden
+# Create virtual environment (venv) if not exists
 if [ ! -d "$VENV_DIR" ]; then
-    echo "[INFO] Erstelle virtuelles Environment..."
+    echo "[INFO] Creating virtual python environment..."
     python3 -m venv "$VENV_DIR"
     INSTALL_REQUIREMENTS=1
 fi
 
-# Aktivieren
+# Activate venv
 source "$VENV_DIR/bin/activate"
 
-# Abhängigkeiten installieren/aktualisieren falls nötig
+# Install / update dependencies if neccessary
 if [ $INSTALL_REQUIREMENTS == 0 ]; then
-    echo "[INFO] Per default werden keine Python-Abhängigkeiten geprüft"
-elif [ -f "$REQ_FILE" ]; then
-    echo "[INFO] Prüfe/Installiere Python-Abhängigkeiten..."
+    echo "[INFO] Per default no Python dependencies are checked (call with -u param to update)"
+elif [ -f "$REQ_FILE_PATH" ]; then
+    echo "[INFO] Installing / updating dependencies (can take a while)..."
     pip install --upgrade pip >/dev/null
-    pip install  --prefer-binary -r "$REQ_FILE" -v
+    pip install  --prefer-binary -r "$REQ_FILE_PATH" -v
 else
-    echo "[WARN] Keine requirements.txt gefunden!"
+    echo "[WARN] No $REQ_FILE_NAME found!"
 fi
 
-# Starte FastAPI über uvicorn
-VERSION=$(cat $BASE_DIR/VERSION)
-echo "[INFO] Starte Pi Control API v${VERSION}..."
-exec uvicorn app.main:app --host 0.0.0.0 --port 8000
+# Starting FastAPI via uvicorn
+echo "[INFO] Starting RasPi Controller API v${VERSION} on port $PORT..."
+exec uvicorn app.main:app --host 0.0.0.0 --port $PORT

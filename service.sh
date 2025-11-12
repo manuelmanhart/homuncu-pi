@@ -9,7 +9,7 @@ PORT=8000
 SERVICE_FILE="/etc/systemd/system/${SERVICE_NAME}.service"
 
 function install() {
-    echo "[INFO] Installiere ${SERVICE_NAME} Service..."
+    echo "[INFO] Installing ${SERVICE_NAME} service..."
 
     local status=$(sudo systemctl status ${SERVICE_NAME})
     if [ "$status" != "Unit ${SERVICE_NAME}.service could not be found." ]; then
@@ -32,21 +32,41 @@ WantedBy=multi-user.target
 EOF
 
         # systemd neu laden
-        echo "[INFO] Lade systemd neu..."
+        echo "[INFO] Reloading system daemon..."
         sudo systemctl daemon-reload
 
         # Service aktivieren und starten
-        echo "[INFO] Aktiviere und starte Service..."
+        echo "[INFO] Activate and start Service..."
         sudo systemctl enable ${SERVICE_NAME}
         sudo systemctl restart ${SERVICE_NAME}
     else
-        echo "[INFO] Service ist bereits installiert, restarte..."
+        echo "[INFO] Service already installed, restarting..."
         sudo systemctl restart ${SERVICE_NAME}
     fi
-    echo "[INFO] Installation abgeschlossen!"
-    echo "  Status prüfen:   sudo systemctl status ${SERVICE_NAME}"
-    echo "  Logs verfolgen:  journalctl -u ${SERVICE_NAME} -f"
-    echo "  API testen:      http://<pi-ip>:${PORT}/status"
+    echo "[INFO] Installation successful!"
+    echo "  Check service state:  sudo systemctl status ${SERVICE_NAME}"
+    echo "  Tail logs:            journalctl -u ${SERVICE_NAME} -f"
+    echo "  Call API:             http://<pi-ip>:${PORT}/status"
+}
+
+function un^install() {
+    echo "[INFO] Uninstalling ${SERVICE_NAME} service..."
+
+    local status=$(sudo systemctl status ${SERVICE_NAME})
+    if [ "$status" == "Unit ${SERVICE_NAME}.service could not be found." ]; then
+		echo "Service ${SERVICE_NAME}.service is not installed."
+	else
+        # systemd Service-Datei schreiben
+        sudo rm "$SERVICE_FILE" > /dev/null
+
+        echo "[INFO] Removing service..."
+        sudo systemctl disable ${SERVICE_NAME}
+        sudo systemctl restart ${SERVICE_NAME}
+        # relaod systemd
+        echo "[INFO] Reloading system daemon..."
+        sudo systemctl daemon-reload
+    fi
+    echo "[INFO] Uninstallation successful!"
 }
 
 function help() {

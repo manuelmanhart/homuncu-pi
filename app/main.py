@@ -12,6 +12,7 @@ from app.services import CONFIG_SERVICE
 #from app.services.config.service import ConfigService
 import app.services # unser Service-Package
 from app.env_var_resolver import resolveVariable
+import asyncio
 
 # Dictionary aller geladenen Services
 services = {}
@@ -63,8 +64,11 @@ app = FastAPI(title="Raspi Controller API", version=version)
 # -------- API Endpoints --------
 
 @app.on_event("startup")
-def start_services():
-    discover_services()
+async def start_services():
+    loop = asyncio.get_event_loop()
+    await loop.run_in_executor(None, discover_services)
+    print(f"config: {CONFIG_SERVICE.loadConfig()}")
+#    discover_services()
     print(f"config: {CONFIG_SERVICE.loadConfig()}")
 
 @app.get("/")

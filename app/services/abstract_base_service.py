@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 import logging
 #from app.config_loader import CONFIG
 from app.services import CONFIG_SERVICE
+import time
 
 class AbstractBaseService(ABC):
     """
@@ -18,15 +19,26 @@ class AbstractBaseService(ABC):
         self.config = self.getServiceConfig()
         # init variables based on state or config
         self.installed = False
+        self.lastReadTime = 0
         self.active = self.config.get("active", False)
+        self.cacheTTL = self.config.get("cacheTimeout", 10)
 
     def status(self) -> dict:
+        if (not self.isCacheValid()):
+            print(f"cache is invalid reading current state...")
+            self.lastReadTime = time.time()
+            self.state = self.readState()
+
         return {
             "service": self.name,
             "installed": self.installed,
             "active": self.active,
-            "state": self.readState()
+            "state": self.state
         }
+
+    def isCacheValid(self) -> bool:
+        cacheTime = time.time() - self.lastReadTime
+        return cacheTime <= self.cacheTTL
 
     @abstractmethod
     def readState(self):

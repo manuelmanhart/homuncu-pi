@@ -35,6 +35,7 @@ else
     echo "[WARN] No $REQ_FILE_NAME found!"
 fi
 
-# Starting FastAPI via uvicorn
-echo "[INFO] Starting RasPi Controller API v${VERSION} on port $PORT..."
-exec uvicorn app.main:app --host 0.0.0.0 --port $PORT
+# Starting python script
+echo "[INFO] Starting RasPi Controller v${VERSION}..."
+# TODO start service without uvicorn
+python3 -m app.main

@@ -10,19 +10,16 @@ from app.services.abstract_sensor_service import AbstractSensorService
 class UpdateService(AbstractSensorService):
     def __init__(self):
         super().__init__("update")
+        self.repoUrl = self.getServiceConfig().get("repoUrl", "https://www.manhart.space/dl/raspi-controller")
 
-    def readNewState(self):
+    def readState(self):
         """Prüft System- und Script-Updates"""
-
         return {
             "updates": {
                 "system": self._checkSystemUpdates(),
                 "script": self._checkScriptUpdates()
             }
         }
-
-    def hasSignificantChange(self, oldState, newState) -> bool:
-        return oldState["updates"]["system"] != newState["updates"]["system"] or oldState["updates"]["script"] != newState["updates"]["script"];
 
     def _checkSystemUpdates(self) -> dict:
         """apt-get Upgrade prüfen"""
@@ -46,8 +43,7 @@ class UpdateService(AbstractSensorService):
     def _checkScriptUpdates(self) -> dict:
         """Hier prüfst du dein Git-Repo oder einen Download-Endpunkt"""
         try:
-            repo_url = "https://www.manhart.space/dl/VERSION"
-            response = requests.get(repo_url, timeout=5)
+            response = requests.get(f"{self.repoUrl}/VERSION", timeout=5)
             if response.status_code == 200:
                 remote_version = response.text.strip()
                 with open("VERSION", "r") as f:

@@ -1,7 +1,7 @@
-from app.services.abstract_base_service import AbstractBaseService
+from app.services.abstract_modular_base_service import AbstractModularBaseService
 import subprocess
 
-class SqueezeboxService(AbstractBaseService):
+class SqueezeboxService(AbstractModularBaseService):
     def __init__(self):
         super().__init__("squeezebox")
 
@@ -20,12 +20,6 @@ class SqueezeboxService(AbstractBaseService):
         self.active = (result.returncode == 0 and result.stdout.strip() == "active")
         return self.active
 
-    def install(self) -> bool:
-        return True
-
-    def uninstall(self) -> bool:
-        return True
-
     def activate(self) -> bool:
         result = subprocess.run(
             ["systemctl", "start", "squeezelite"],
@@ -41,7 +35,3 @@ class SqueezeboxService(AbstractBaseService):
             text=True
         )
         return (result.returncode == 0)
-
-    def configure(self, config: dict) -> bool:
-        self.config.update(config)
-        return True

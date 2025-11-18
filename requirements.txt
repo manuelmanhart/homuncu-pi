@@ -1,6 +1,4 @@
-fastapi
-requests
 paho-mqtt
-uvicorn
+requests
 pigpio
 PyYAML

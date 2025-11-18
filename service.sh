@@ -6,15 +6,16 @@ SERVICE_NAME="raspi-controller"
 WORK_DIR="$(cd "$(dirname "$0")"; pwd)"
 #USER="manuel"        # ggf. anpassen (z. B. dein Linux-User)
 PORT=8000
-SERVICE_FILE="/etc/systemd/system/${SERVICE_NAME}.service"
+SERVICE_FILE_NAME="${SERVICE_NAME}.service"
+SERVICE_FILE_PATH="/etc/systemd/system/${SERVICE_FILE_NAME}"
 
 function install() {
     echo "[INFO] Installing ${SERVICE_NAME} service..."
 
-    local status=$(sudo systemctl status ${SERVICE_NAME})
-    if [ "$status" != "Unit ${SERVICE_NAME}.service could not be found." ]; then
+    local status=$(sudo systemctl status ${SERVICE_FILE_NAME})
+    if [ "$status" != "Unit ${SERVICE_FILE_NAME} could not be found." ]; then
         # systemd Service-Datei schreiben
-        sudo tee "$SERVICE_FILE" > /dev/null <<EOF
+        sudo tee "$SERVICE_FILE_PATH" > /dev/null <<EOF
 [Unit]
 Description=Pi Controller for plug and play homeautomation
 After=network.target
@@ -36,7 +37,7 @@ EOF
         sudo systemctl daemon-reload
 
         # Service aktivieren und starten
-        echo "[INFO] Activate and start Service..."
+        echo "[INFO] Activate and start Service ${SERVICE_NAME} ..."
         sudo systemctl enable ${SERVICE_NAME}
         sudo systemctl restart ${SERVICE_NAME}
     else
@@ -49,19 +50,37 @@ EOF
     echo "  Call API:             http://<pi-ip>:${PORT}/status"
 }
 
-function un^install() {
+function status() {
+    echo "[INFO] Status of ${SERVICE_NAME} service..."
+
+    local status=$(sudo systemctl status ${SERVICE_FILE_NAME})
+    if [ "$status" == "Unit ${SERVICE_FILE_NAME} could not be found." ]; then
+        echo "[INFO] Service ${SERVICE_NAME} is not installed."
+    else
+        local isActive=$(echo $status | grep "Active:")
+        if [ "$isActive" != "" ]; then
+            echo "[INFO] Service ${SERVICE_NAME} is running"
+            echo ""
+            journalctl -u ${SERVICE_NAME} -f
+        else
+            echo "[INFO] Service ${SERVICE_NAME} not running"
+        fi
+    fi
+}
+
+function uninstall() {
     echo "[INFO] Uninstalling ${SERVICE_NAME} service..."
 
     local status=$(sudo systemctl status ${SERVICE_NAME})
-    if [ "$status" == "Unit ${SERVICE_NAME}.service could not be found." ]; then
-		echo "Service ${SERVICE_NAME}.service is not installed."
+    if [ "$status" == "Unit ${SERVICE_FILE_NAME} could not be found." ]; then
+		echo "Service ${SERVICE_FILE_NAME} is not installed."
 	else
         # systemd Service-Datei schreiben
-        sudo rm "$SERVICE_FILE" > /dev/null
+        sudo rm "$SERVICE_FILE_PATH" > /dev/null
 
         echo "[INFO] Removing service..."
         sudo systemctl disable ${SERVICE_NAME}
-        sudo systemctl restart ${SERVICE_NAME}
+        sudo systemctl stop ${SERVICE_NAME}
         # relaod systemd
         echo "[INFO] Reloading system daemon..."
         sudo systemctl daemon-reload

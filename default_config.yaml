@@ -1,11 +1,16 @@
-mqtt:
-  host: 192.168.1.5
-  port: 1883
-  baseTopic: home/${HOSTNAME}
-
+global:
+  cacheTTL: 10
+  hostname: ${HOSTNAME}
 services:
+  mqtt:
+    host: 192.168.1.5
+    port: 1883
+    baseOutTopic: home/raspi
+    inTopic: home/raspi
   temperature:
-    active: true
+    active: False
+    pin: 4
+    sensorType: "DHT22"
     pollInterval: 30
     publishInterval: 600
     temperatureTolerance: 0.5
@@ -14,13 +19,33 @@ services:
     humidityCorrection75: 0
     temperatureCorrection: 0
     humidityTolerance: 4
+    appendHostnameToTopic: True
+  binarySensor:
+    active: False
+    sensors:
+      - id: "reed"
+        pin: 21
+        pull: "up"
+        labelHigh: "Open"
+        labelLow: "Closed"
+        mqttTopic: "reed"
+
+      - id: "pir"
+        pin: 16
+        pull: "down"
+        labelHigh: "Motion"
+        labelLow: "No Motion"
+        mqttTopic: "pir"
   camera:
     active: False
   healthcheck:
-    active: True
-  reedswitch:
     active: False
   update:
-    active: true
+    active: True
   squeezebox:
-    active: true
+    active: False
+  readonly:
+    active: False
+  ipaddress:
+    active: False
+    appendHostnameToTopic: False

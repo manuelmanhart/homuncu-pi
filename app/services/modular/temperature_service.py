@@ -4,18 +4,18 @@ import os
 import subprocess
 from app.services.abstract_sensor_service import AbstractSensorService
 sys.path.append(os.path.dirname(__file__)) 
-from app.services.temp_sensor import sensor
+from app.services.modular.temp_sensor_helper import sensor
 
 class TemperatureService(AbstractSensorService):
-    def __init__(self, gpioPin=4, sensor_type="DHT22"):
+    def __init__(self):
         super().__init__("temperature")
-        self.temperatureTolerance=self.config.get("temperatureTolerance", 0.5)
-        self.humidityTolerance=self.config.get("humidityTolerance", 0.5)
-        self.humidityCorrection40=self.config.get("humidityCorrection40", 0)
-        self.humidityCorrection75=self.config.get("humidityCorrection75", 0)
-        self.temperatureCorrection=self.config.get("temperatureCorrection", 0)
-        self.gpioPin = gpioPin
-        self.sensor_type = sensor_type
+        self.temperatureTolerance = self.getServiceConfig().get("temperatureTolerance", 0.5)
+        self.humidityTolerance = self.getServiceConfig().get("humidityTolerance", 3)
+        self.humidityCorrection40 = self.getServiceConfig().get("humidityCorrection40", 0)
+        self.humidityCorrection75 = self.getServiceConfig().get("humidityCorrection75", 0)
+        self.temperatureCorrection = self.getServiceConfig().get("temperatureCorrection", 0)
+        self.gpioPin = self.getServiceConfig().get("pin", 4)
+        self.sensor_type = self.getServiceConfig().get("sensorType", "DHT22")
 
         self.pi = pigpio.pi()
         if not self.pi.connected:
@@ -23,35 +23,48 @@ class TemperatureService(AbstractSensorService):
         self.sensor = sensor(self.pi, self.gpioPin)
         self.sensor.trigger()  # initial trigger
 
-    def readNewState(self):
+    def readState(self):
         try:
-            print(f"sensor: {self.sensor}")
+            self.getLoggingService().debug(f"[{self.name}] reading sensor: {self.sensor}")
             if (self.sensor != None):
-                print(f"reading sensor: {self.sensor}")
                 self.sensor.trigger()
                 import time; time.sleep(2)  # kurz warten auf Messung
                 temperature = self.sensor.temperature()
                 humidity = self.sensor.humidity()
+                self.getLoggingService().debug(f"[{self.name}] read temp {temperature} read hum {humidity}")
+                self.getLoggingService().debug(f"[{self.name}] read temp {self.correctTemperature(temperature)} read hum {self.correctHumidity(humidity)}")
+                self.getLoggingService().debug(f"[{self.name}] read temp {round(self.correctTemperature(temperature), 1)} read hum {round(self.correctHumidity(humidity), 1)}")
                 return {
-                    "temperature": round(temperature + self.temperatureCorrection, 1),
+                    "temperature": round(self.correctTemperature(temperature), 1),
                     "humidity": round(self.correctHumidity(humidity), 1),
                 }
             else:
-                print(f"sensor not ready yet")
+                self.getLoggingService().warn(f"[{self.name}] sensor not ready yet")
                 return { "Sensor not ready yet" }
         except Exception as e:
             return {"error": str(e)}
 
+    def correctTemperature(self, temperature):
+        if self.temperatureCorrection != 0:
+            return (temperature + self.temperatureCorrection)
+        else:
+            return temperature
+
     def correctHumidity(self, humidity):
-        if self.humidityCorrection40 > 0 and self.humidityCorrection75 > 0:
+        if self.humidityCorrection40 != 0 and self.humidityCorrection75 != 0:
             return (humidity - self.humidityCorrection40) * (75 - self.humidityCorrection40) / (humidityCorrection75 - self.humidityCorrection40) + 40
         else:
             return humidity
 
     def hasSignificantChange(self, oldState, newState) -> bool:
-        print(f"{oldState["temperature"]} - {newState["temperature"]} > {self.temperatureTolerance} or {oldState["humidity"]} - {newState["humidity"]} > {self.humidityTolerance}");
-        return abs(oldState["temperature"] - newState["temperature"]) > self.temperatureTolerance or \
-               abs(oldState["humidity"] - newState["humidity"]) > self.humidityTolerance;
+        tempOverThreshold = self.isOverThreshold(oldState["temperature"], newState["temperature"], self.temperatureTolerance)
+        humOverThreshold = self.isOverThreshold(oldState["humidity"], newState["humidity"], self.humidityTolerance)
+        return tempOverThreshold or humOverThreshold
+
+    def isOverThreshold(self, numberA, numberB, tolerance):
+        result = abs(numberA - numberB) > tolerance
+        self.getLoggingService().debug(f"[{self.name}] isOverThreshold({numberA}, {numberB}, {tolerance}) = {result}");
+        return result
 
     def isServiceActive(self) -> bool:
         result = subprocess.run(

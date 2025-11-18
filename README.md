@@ -105,8 +105,26 @@ You just need to call the following bash script and it will guide you through th
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-<!-- ROADMAP -->
+### PIR Sensor
+
+1. Connect to 5V, GPIO 23, GND with a cable
+2. Then configure the yaml file
+3. Set the potmeters
+
+https://forum.arduino.cc/t/help-me-to-understand-the-two-potmeters-on-my-pir-sensor/372895
+
 ## Changelog
+
+**1.0.0**
+* Switched to [Semantic Versioning 2.0.0](https://semver.org/)
+* Refactored services into
+  * base services (always in the system and usually global)
+  * modular services (should be downloaded in the future on the fly only when used / installed)
+* Switched to an mqtt only approach instead of providing REST services
+* Added hasSignificantChange function to sensor service (for immediate updates if sensor data changed significantly)
+* Extended bash scripts
+* Implemented `BinarySensorService` for  all sensors (eg. pir, reed,...) where we just read a low / high state
+  * Can be configured / used with multiple sensors
 
 **0.5**
 * Moved default_config.yaml file to project root
@@ -128,14 +146,14 @@ You just need to call the following bash script and it will guide you through th
 **0.1**
 * Initial web service api
 
-<!-- ROADMAP -->
 ## Roadmap
 
-- [ ] Add threshold function to sensor service
-- [ ] Add functions to camera service
-- [ ] Refactor functions in base service
-- [ ] Refactor update service to new sensor service
-- [ ] Save the configuration into a yaml file
+- [ ] Sending logging also via `$baseOutTopic/$hostname/logging`
+- [ ] Implement CameraService
+- [ ] Implement ReadonlyService
+- [ ] Save the configuration into `config.yaml` file
+- [ ] Merge the configs read from `default_config.yaml` and `config.yaml` so one only needs to override the changes instead of copying all
+- [ ] Read incoming mqtt messages and forward them to the correct service
 
 See the [open issues](https://code.manhart.space/manuelmanhartit/raspi-controller/issues) for a full list of proposed features (and known issues).
 

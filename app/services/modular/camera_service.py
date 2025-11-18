@@ -1,7 +1,8 @@
-from app.services.abstract_base_service import AbstractBaseService
+from app.services.abstract_modular_base_service import AbstractModularBaseService
 import subprocess
 
-class CameraService(AbstractBaseService):
+# TODO implement correctly
+class CameraService(AbstractModularBaseService):
     def __init__(self):
         super().__init__("camera")
 
@@ -18,8 +19,4 @@ class CameraService(AbstractBaseService):
 
     def deactivate(self) -> bool:
         self.active = False
-        return True
-
-    def configure(self, config: dict) -> bool:
-        self.config.update(config)
         return True

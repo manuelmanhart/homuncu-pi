@@ -17,7 +17,7 @@ class IpAddressService(AbstractSensorService):
         s.close()
         return {
             "name": self.getGlobalConfig().get("hostname", ""),
-            "ipaddress": ipAddress,
+            "ip": ipAddress,
         }
 
     def hasSignificantChange(self, oldState, newState) -> bool:

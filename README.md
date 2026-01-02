@@ -56,14 +56,16 @@
   </ol>
 </details>
 
-
-
 <!-- ABOUT THE PROJECT -->
 ## About The Project
 
-[![Product Name Screen Shot][product-screenshot]](https://example.com)
+[![components diagram][product-components-diagram]][issues-url]
 
-I have a homeassistant installation and for integrating sensors and hardware ...TBD
+I have a homeassistant installation running on a server. For integrating multiple sensors and other stuff (like multiroom audio) I needed a solution. Since I already had some old Raspberry PIs lying around from old projects I thought I could use them. I started with a small project for reading a DHT22 for temperature & humidity, but with the upgrade to bookworm it failed due to deprecated libraries.
+
+Also it was only taking care of temperature but nothing else and it was not very flexible / configurable. So I created a solution which I could extend easily and came up with this thing I call Raspi-Controller.
+
+In my first attempt I used REST via fastapi (for easy access) but it showed that this only works good on a raspberry pi 2 or newer. But I wanted compatibility to raspberry pi 1 as well, so I took a step back, removed the whole REST part and started thinking about mqtt for output and accessing the pi.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -96,24 +98,53 @@ You just need to call the following bash script and it will guide you through th
 <!-- USAGE EXAMPLES -->
 ## Usage
 
-* Cameras
-* Readonly mode
-* Reedswitch / Open Close Sensors
-* Squeezebox / Musicbox
-* Temperature And Humidity Sensors
-* Software Update Service
+This software was built to brigde to different IOT hardware and make them available to the raspberry pi as plug and play components. Also to power a homeautomation system like homeassistant via mqtt.
 
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
+The features are
+
+* Binary Sensors (low / high) like Reedswitches or PIR sensors - for intruder alert, motion detection,...
+* Cameras - so you can see what is going on even when not at home
+* Healthcheck - you can get healthcheck information on the Raspberry PI like temp, cpu, mem, disk usage,...
+* IP Address - if your router sometimes changes IP Addresses (via DHCP), you can feed a DNS server (like unbound) always with current name & ip address combinations
+* Led - power LEDs on incoming MQTT messages
+* Readonly mode - so the Raspberry PI is more resilient to power outages / issues
+* Squeezebox / Musicbox - For Multiroom Audio and as well so everyone can listen to their music easily
+* Temperature And Humidity Sensors - To track the environment of your house / flat
+* (Software) Update Service - So the Raspberry PI always stays up to date as well as Raspi-Controller itself
+
+### Reading MQTT Sensor Values
+
+1. Install an MQTT broker on a server
+2. Configure raspi-controller to use this as its broker (in `config.yaml`)
+3. Start raspi-controller (via run.sh) to see in the logs to which topic the sensor will write to
+4. Subscribe to the according topic in your software of choice (eg. homeassistant)
+
+### Squeezeboy / Musicbox / Multiroom Audio
+
+The squeezebox service is currently only a read on the state of the linux service
+
+Currently it needs to be installed manually but it will be integrated in a future release (into bash)
+
+### Temperature & Humidity Sensor
+
+This is written for DHT22, but you can use DHT11 or AM2302 as well.
+
+1. Connect to 3.3V, GPIO 4, GND with a fitting cable
+2. Then configure the yaml file (section `temperature`)
 
 ### PIR Sensor
 
-1. Connect to 5V, GPIO 23, GND with a cable
-2. Then configure the yaml file
-3. Set the potmeters
+1. Connect to 5V, GPIO 23, GND with a fitting cable
+2. Then configure the yaml file (section `binarySensor`)
+3. Set the potmeters on the PIR sensor accordingly
 
-https://forum.arduino.cc/t/help-me-to-understand-the-two-potmeters-on-my-pir-sensor/372895
+Also see [understand the two potentiometers on a PIR sensor][pir-two-pot] or [connect a PIR sensor to the raspberry pi (German)][pir-two-pot-de]
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 ## Changelog
+
+**1.1.0 - WIP**
 
 **1.0.0**
 * Switched to [Semantic Versioning 2.0.0](https://semver.org/)
@@ -146,12 +177,14 @@ https://forum.arduino.cc/t/help-me-to-understand-the-two-potmeters-on-my-pir-sen
 **0.1**
 * Initial web service api
 
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
 ## Roadmap
 
 - [ ] Sending logging also via `$baseOutTopic/$hostname/logging`
 - [ ] Implement CameraService
 - [ ] Implement ReadonlyService
-- [ ] Save the configuration into `config.yaml` file
+- [ ] Get the config via MQTT and save the configuration into `config.yaml` file
 - [ ] Merge the configs read from `default_config.yaml` and `config.yaml` so one only needs to override the changes instead of copying all
 - [ ] Read incoming mqtt messages and forward them to the correct service
 
@@ -198,7 +231,10 @@ Manuel Manhart - [@manuel.manhart](https://twitter.com/ManuelManhart) - manuel.m
 [license-shield]: https://img.shields.io/badge/license-mit-blue?style=for-the-badge
 [license-url]: https://code.manhart.space/manuelmanhartit/raspi-controller/src/branch/main/LICENSE.md
 [product-screenshot]: docs/screenshot.png
+[product-components-diagram]: docs/components-diagram.png
 [Python]: https://img.shields.io/badge/python-000000?logo=python&style=for-the-badge&
 [Python-url]: https://python.org/
 [Bash]: https://img.shields.io/badge/Bash-20232A?logo=gnubash&style=for-the-badge&
 [Bash-url]: https://bash.org/
+[pir-two-pot]: https://forum.arduino.cc/t/help-me-to-understand-the-two-potmeters-on-my-pir-sensor/372895
+[pir-two-pot-de]: https://tutorials-raspberrypi.de/raspberry-pi-bewegungsmelder-sensor-pir/

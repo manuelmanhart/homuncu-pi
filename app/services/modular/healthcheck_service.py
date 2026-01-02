@@ -1,15 +1,12 @@
 import json
-import os
-
 from pathlib import Path
-from app.env_var_resolver import resolveVariable
 from app.services.abstract_sensor_service import AbstractSensorService
 
 class HealthcheckService(AbstractSensorService):
     def __init__(self):
-        self.installed = True
-        self.currentHealthcheckPath = Path(resolveVariable("/tmp/current-healthcheck.json"))
         super().__init__("healthcheck")
+        self.installed = True
+        self.currentHealthcheckPath = Path( self.getServiceConfig().get("currentHealthcheckPath", "/tmp/current-healthcheck.json") )
 
     def readState(self):
         """Liest den aktuellen Healthcheck-Status aus der Datei"""

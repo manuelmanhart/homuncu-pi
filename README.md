@@ -112,6 +112,42 @@ The features are
 * Temperature And Humidity Sensors - To track the environment of your house / flat
 * (Software) Update Service - So the Raspberry PI always stays up to date as well as Raspi-Controller itself
 
+### Logging
+
+By default the logging is written to stdout. The log levels are configured via `config.yaml` file. The default logging config is:
+
+```yaml
+  logging:
+    active: True
+    default: INFO
+```
+
+This means that logging will be made, and that the default level is INFO. 
+
+The loglevels are:
+
+```
+DEBUG
+INFO
+WARN
+ERROR
+```
+
+and eg. INFO will log the levels from INFO on to the last level (ERROR).
+
+You can override levels for your service like this:
+
+```yaml
+  logging:
+    active: True
+    default: INFO
+    mqtt: DEBUG
+```
+
+That additional line means that for the mqtt service we want to have additional logging so we can see what is happening inside the logic of this service.
+
+This is common in software craftmanship and made so we do not flood the logs with debug messages (but log them when / where neccessary).
+
 ### Reading MQTT Sensor Values
 
 1. Install an MQTT broker on a server
@@ -145,6 +181,7 @@ Also see [understand the two potentiometers on a PIR sensor][pir-two-pot] or [co
 ## Changelog
 
 **1.1.0 - WIP**
+* Refactored `LoggingService` to change loglevel via config file
 
 **1.0.0**
 * Switched to [Semantic Versioning 2.0.0](https://semver.org/)

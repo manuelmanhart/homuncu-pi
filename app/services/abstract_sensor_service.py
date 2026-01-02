@@ -18,7 +18,7 @@ class AbstractSensorService(AbstractModularBaseService):
         self.lastPublishTime = None
         # Hintergrundthread starten
         self.thread = threading.Thread(target=self.pollSensorInThread, daemon=True)
-        self.getLoggingService().debug(f"[{self.name}] active: {self.active}")
+        self.getLoggingService().debug(self.name, f"active: {self.active}")
         if (self.active):
             self.activate()
 
@@ -37,22 +37,22 @@ class AbstractSensorService(AbstractModularBaseService):
             try:
                 self.state = self.getState()
             except Exception as e:
-                self.getLoggingService().error(f"[{self.name}] getState failed: {e}")
+                self.getLoggingService().error(self.name, f"getState failed: {e}")
 
     def publishNewStateIfNeccessary(self, newState):
         try:
-            self.getLoggingService().debug(f"[{self.name}] publishedState: {self.publishedState} -> newState: {newState}")
+            self.getLoggingService().debug(self.name, f"publishedState: {self.publishedState} -> newState: {newState}")
             if newState != None and (self.publishedState == None or self.hasSignificantChange(self.publishedState, newState) or self.publishIntervalExceeded()):
-                self.getLoggingService().debug(f"[{self.name}] publishing newState: {newState}")
+                self.getLoggingService().debug(self.name, f"publishing newState: {newState}")
                 self.publishState(self.name, newState)
         except Exception as e:
-            self.getLoggingService().debug(f"[{self.name}] Fehler im Poll-Loop: {e}")
+            self.getLoggingService().debug(self.name, f"Fehler im Poll-Loop: {e}")
 
     def publishIntervalExceeded(self) -> bool:
         if (self.publishInterval > 0):
             now = time.time()
             timeDiff = abs(now - self.lastPublishTime)
-            self.getLoggingService().debug(f"[{self.name}] now: {now} - lastPublishTime: {self.lastPublishTime} => {timeDiff} / {self.publishInterval} => {timeDiff > self.publishInterval}")
+            self.getLoggingService().debug(self.name, f"now: {now} - lastPublishTime: {self.lastPublishTime} => {timeDiff} / {self.publishInterval} => {timeDiff > self.publishInterval}")
             return timeDiff > self.publishInterval
         else:
             return False

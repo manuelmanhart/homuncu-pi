@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from app.services.base.logging_service import LoggingService
+from app.services.base.stdout_logging_service import StdoutLoggingService
 from app.services.di_helper import getService
 import time
 
@@ -16,19 +16,16 @@ class AbstractBaseService(ABC):
         self.cacheTTL = cacheTTL
 
     def init(self):
-        self.getLoggingService().debug(f"Service [{self.name}] init was successful")
-
-    def getDIService(self, className):
-        return getService(className)
+        self.getLoggingService().debug(self.name, f"Service init was successful")
 
     def getLoggingService(self):
-        return getService(LoggingService)
+        return getService(StdoutLoggingService)
 
     def getState(self) -> dict:
         if (not self.isCacheValid()):
             self.lastReadTime = time.time()
             self.state = self.readState()
-            self.getLoggingService().debug(f"[{self.name}] cache was Invalid, current state {self.state}")
+            self.getLoggingService().debug(self.name, f"cache was Invalid, current state {self.state}")
 
         return self.state
 

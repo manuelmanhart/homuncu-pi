@@ -14,8 +14,8 @@ class HealthcheckService(AbstractSensorService):
     def readState(self):
         """Liest den aktuellen Healthcheck-Status aus der Datei"""
         if self.currentHealthcheckPath.exists():
-            self.getLoggingService().debug(f"[{self.name}] reading {self.currentHealthcheckPath}")
-            self.logger.info(f"[{self.name}] reading {self.currentHealthcheckPath}")
+            self.getLoggingService().debug(self.name, f" reading {self.currentHealthcheckPath}")
+            self.logger.info(self.name, f" reading {self.currentHealthcheckPath}")
             try:
                 if self.currentHealthcheckPath.exists():
                     with open(self.currentHealthcheckPath, "r") as f:

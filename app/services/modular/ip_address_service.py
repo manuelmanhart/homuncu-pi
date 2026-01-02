@@ -11,9 +11,9 @@ class IpAddressService(AbstractSensorService):
     def readState(self):
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         s.connect((self.ipToConnectTo, self.portToConnectTo))
-        self.getLoggingService().debug(f"[{self.name}] {s.getsockname()}")
+        #self.getLoggingService().debug(self.name, f"networking info: {s.getsockname()}")
         ipAddress = (s.getsockname()[0])
-        self.getLoggingService().debug(f"[{self.name}] {ipAddress}")
+        self.getLoggingService().debug(self.name, f"current ip address {ipAddress}")
         s.close()
         return {
             "name": self.getGlobalConfig().get("hostname", ""),
@@ -21,6 +21,5 @@ class IpAddressService(AbstractSensorService):
         }
 
     def hasSignificantChange(self, oldState, newState) -> bool:
-        self.getLoggingService().debug(f"[{self.name}] hasSignificantChange {oldState} - {newState}")
-        self.getLoggingService().debug(f"    results in {oldState != newState}")
+        self.getLoggingService().debug(self.name, f" hasSignificantChange {oldState} - {newState} -> results in {oldState != newState}")
         return oldState != newState

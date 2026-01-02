@@ -25,21 +25,21 @@ class TemperatureService(AbstractSensorService):
 
     def readState(self):
         try:
-            self.getLoggingService().debug(f"[{self.name}] reading sensor: {self.sensor}")
+            self.getLoggingService().debug(self.name, f" reading sensor: {self.sensor}")
             if (self.sensor != None):
                 self.sensor.trigger()
                 import time; time.sleep(2)  # kurz warten auf Messung
                 temperature = self.sensor.temperature()
                 humidity = self.sensor.humidity()
-                self.getLoggingService().debug(f"[{self.name}] read temp {temperature} read hum {humidity}")
-                self.getLoggingService().debug(f"[{self.name}] read temp {self.correctTemperature(temperature)} read hum {self.correctHumidity(humidity)}")
-                self.getLoggingService().debug(f"[{self.name}] read temp {round(self.correctTemperature(temperature), 1)} read hum {round(self.correctHumidity(humidity), 1)}")
+                self.getLoggingService().debug(self.name, f" read temp {temperature} read hum {humidity}")
+                self.getLoggingService().debug(self.name, f" corrected temp {self.correctTemperature(temperature)} corrected hum {self.correctHumidity(humidity)}")
+                self.getLoggingService().debug(self.name, f" rounded temp {round(self.correctTemperature(temperature), 1)} rounded hum {round(self.correctHumidity(humidity), 1)}")
                 return {
                     "temperature": round(self.correctTemperature(temperature), 1),
                     "humidity": round(self.correctHumidity(humidity), 1),
                 }
             else:
-                self.getLoggingService().warn(f"[{self.name}] sensor not ready yet")
+                self.getLoggingService().warn(self.name, f" sensor not ready yet")
                 return { "Sensor not ready yet" }
         except Exception as e:
             return {"error": str(e)}
@@ -63,7 +63,7 @@ class TemperatureService(AbstractSensorService):
 
     def isOverThreshold(self, numberA, numberB, tolerance):
         result = abs(numberA - numberB) > tolerance
-        self.getLoggingService().debug(f"[{self.name}] isOverThreshold({numberA}, {numberB}, {tolerance}) = {result}");
+        self.getLoggingService().debug(self.name, f" isOverThreshold({numberA}, {numberB}, {tolerance}) => {result}")
         return result
 
     def isServiceActive(self) -> bool:

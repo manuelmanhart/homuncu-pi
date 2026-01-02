@@ -17,10 +17,10 @@ class AbstractConfigurableService(AbstractBaseService):
 
     def getServiceConfig(self) -> dict:
         if not self.name or self.name == None:
-            self.getLoggingService().error(f"[{self.name}] Cannot access service config yet, must be after init method has been completed!")
+            self.getLoggingService().error(self.name, "Cannot access service config yet, must be after init method has been completed!")
             return {}; # TBD do some useful error handling
         else:
-            return self._getConfigService().getScopedConfig("services").get(self.name);
+            return self._getConfigService().getScopedConfig("services").get(self.name)
 
     def getGlobalConfig(self) -> dict:
         return self._getConfigService().getScopedConfig("global")

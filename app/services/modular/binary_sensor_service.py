@@ -8,7 +8,7 @@ class BinarySensorService(AbstractSensorService):
         # List of sensor definitions
         config = self.getServiceConfig()
 
-        self.getLoggingService().debug(f"[{self.name}] serviceConfig: {config}")
+        self.getLoggingService().debug(self.name, f" serviceConfig: {config}")
 
         self.pi = pigpio.pi()
         if not self.pi.connected:

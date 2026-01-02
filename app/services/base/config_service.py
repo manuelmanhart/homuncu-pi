@@ -29,9 +29,9 @@ class ConfigService(AbstractBaseService):
             raise FileNotFoundError("Weder config.yaml noch default_config.yaml gefunden")
 
         with open(path, "r") as f:
-            self.getLoggingService().debug(f"[{self.name}] loading config file {path}")
+            self.getLoggingService().debug(self.name, f" loading config file {path}")
             raw = yaml.safe_load(f)
-            self.getLoggingService().debug(f"[{self.name}] config {raw}")
+            self.getLoggingService().debug(self.name, f" config {raw}")
 
         # Expand environment placeholders recursively
         cfg = self._expand(raw or {})
@@ -39,7 +39,7 @@ class ConfigService(AbstractBaseService):
 
     def getScopedConfig(self, scope) -> dict:
         config = self.getState()
-        #self.getLoggingService().debug(f"[{self.name}] reading {scope} from config {config}")
+        #self.getLoggingService().debug(self.name, f" reading {scope} from config {config}")
         return config.get(scope, {})
 
 # TODO implement update config functions which saves to config.yaml file

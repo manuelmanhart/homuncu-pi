@@ -9,7 +9,7 @@ class AbstractModularBaseService(AbstractConfigurableService):
     def __init__(self, name: str):
         super().__init__(name)
         self.active = self.getServiceConfig().get("active", False)
-        self.getLoggingService().debug(f"[{self.name}] service config {self.getServiceConfig()} -> active {self.active}")
+        self.getLoggingService().debug(self.name, f"service config {self.getServiceConfig()} -> active {self.active}")
 
     def onMqttMessage(self):
         # TBD the mqtt service should send an internal event / message

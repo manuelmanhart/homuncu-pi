@@ -22,14 +22,14 @@ class MqttService(AbstractConfigurableService):
         mqttHost = self.getServiceConfig().get("host", "")
         mqttPort = self.getServiceConfig().get("port", "")
         if (mqttHost == "" or mqttPort == ""):
-            self.getLoggingService().debug(f"[{self.name}] could not connect to mqtt server: {mqttHost}:{mqttPort}")
+            self.getLoggingService().error(self.name, f"please provide full config to mqtt server - host: {mqttHost} port: {mqttPort}")
         else:
             self.client.connect(mqttHost, mqttPort, 60)
             # Start the network loop
             self.client.loop_start()
 
     def on_connect(self, client, userdata, flags, rc):
-        self.getLoggingService().debug(f"[{self.name}] connected with result code {rc}")
+        self.getLoggingService().debug(self.name, f" connected with result code {rc}")
         # Subscribe, which need to put into on_connect
         # If reconnect after losing the connection with the broker, it will continue to subscribe to the raspberry/topic topic
         self.client.subscribe(self.inTopic)
@@ -41,7 +41,7 @@ class MqttService(AbstractConfigurableService):
         # send log to the logging topic
         # TODO send logging event (see https://stackoverflow.com/questions/1092531/which-python-packages-offer-a-stand-alone-event-system/16192256#16192256)
         self.sendMessage("logging", f"I got your message {msg}")
-        self.getLoggingService().debug(f"[{self.name}] Got mqtt message with topic {msg.topic} and payload {msg.payload}")
+        self.getLoggingService().debug(self.name, f" Got mqtt message with topic {msg.topic} and payload {msg.payload}")
 
     def sendMessage(self, topicAppendix: str, payload: str, addHostName = False):
         hostname = self.getGlobalConfig().get("hostname", "")
@@ -49,11 +49,11 @@ class MqttService(AbstractConfigurableService):
         if (hostname != "" and addHostName == True):
             scopedHostnameTopic = f"{hostname}/"
         topic = f"{self.baseOutTopic}/{scopedHostnameTopic}{topicAppendix}"
-        self.getLoggingService().debug(f"[{self.name}] sending mqtt message to topic {topic} with payload {payload}")
+        self.getLoggingService().debug(self.name, f" sending mqtt message to topic {topic} with payload {payload}")
         self.client.publish(f"{topic}", payload)
 
     def handleShutdownService(self):
-        self.getLoggingService().debug(f"[{self.name}] disconnecting mqtt")
+        self.getLoggingService().debug(self.name, f" disconnecting mqtt")
         self.client.disconnect()
 
 # Service in di registrieren

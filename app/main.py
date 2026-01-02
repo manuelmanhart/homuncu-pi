@@ -17,7 +17,7 @@ def discoverModularServices():
     discoverServicesInPackage("modular")
 
 def discoverServicesInPackage(package: str):
-    print(f"[INFO] Discovering {package} services")
+    print(f"[INFO] discovering {package} services")
     SERVICES_DIR = os.path.join(os.path.dirname(__file__), "services", package)
 
     for filename in os.listdir(SERVICES_DIR):
@@ -31,10 +31,10 @@ def discoverServicesInPackage(package: str):
             # Suche Service-Klassen
             for name, obj in inspect.getmembers(module, inspect.isclass):
                 if issubclass(obj, AbstractModularBaseService) and obj is not AbstractModularBaseService and obj is not AbstractSensorService:
-                    print(f"[DEBUG] initializing service {name}")
+                    print(f"[INFO] initializing service: {name}")
                     instance = obj()
                     services[instance.name] = instance
-                    print(f"[DEBUG] Service geladen: {instance.name}")
+                    print(f"[INFO] service loaded successfully: {instance.name}")
 
 def isService(filename):
     return filename.endswith("service.py") \

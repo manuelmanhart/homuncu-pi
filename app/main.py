@@ -31,10 +31,10 @@ def discoverServicesInPackage(package: str):
             # Suche Service-Klassen
             for name, obj in inspect.getmembers(module, inspect.isclass):
                 if issubclass(obj, AbstractModularBaseService) and obj is not AbstractModularBaseService and obj is not AbstractSensorService:
-                    print(f"[INFO] initializing service: {name}")
+                    print(f"[INFO] {name} init service...")
                     instance = obj()
                     services[instance.name] = instance
-                    print(f"[INFO] service loaded successfully: {instance.name}")
+                    print(f"[INFO] {name} init successfully - active: {instance.active} ")
 
 def isService(filename):
     return filename.endswith("service.py") \

@@ -112,6 +112,10 @@ The features are
 * Temperature And Humidity Sensors - To track the environment of your house / flat
 * (Software) Update Service - So the Raspberry PI always stays up to date as well as Raspi-Controller itself
 
+### Configuration File
+
+TODO explain config.yaml logic
+
 ### Logging
 
 By default the logging is written to stdout. The log levels are configured via `config.yaml` file. The default logging config is:
@@ -148,12 +152,19 @@ That additional line means that for the mqtt service we want to have additional 
 
 This is common in software craftmanship and made so we do not flood the logs with debug messages (but log them when / where neccessary).
 
-### Reading MQTT Sensor Values
+### MQTT
+
+#### Reading MQTT Sensor Values
+
+To verify what is sent to the mqtt broker, follow these steps:
 
 1. Install an MQTT broker on a server
 2. Configure raspi-controller to use this as its broker (in `config.yaml`)
-3. Start raspi-controller (via run.sh) to see in the logs to which topic the sensor will write to
-4. Subscribe to the according topic in your software of choice (eg. homeassistant)
+3. Set the `mqtt` logging configuration to `DEBUG` (see above on how to do this)
+3. Start raspi-controller (via `run.sh`) to see in the logs to which topic the sensor will write to
+4. Subscribe to the according topic(s) in your software of choice (eg. homeassistant, mosquitto,...)
+    1. To debug all mqtt traffic go into your mosquitto container (`docker exec -ti CONTAINER_NAME sh`)
+    2. Then subscribe to all topics (`mosquitto_sub -h 127.0.0.1 -t home/#`)
 
 ### Squeezeboy / Musicbox / Multiroom Audio
 

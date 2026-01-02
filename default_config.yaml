@@ -51,4 +51,4 @@ services:
     active: False
   ipaddress:
     active: False
-    appendHostnameToTopic: False
+    mqttFlags: NONE

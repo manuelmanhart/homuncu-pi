@@ -1,10 +1,11 @@
+from abc import abstractmethod
 import threading
-from datetime import datetime
 import time
 import json
-from abc import abstractmethod
+
 from app.services.abstract_modular_base_service import AbstractModularBaseService
 from app.services.base.mqtt_service import MqttService
+from app.services.base.mqtt_send_flags import MqttSendFlags
 from app.services.di_helper import getService
 
 class AbstractSensorService(AbstractModularBaseService):
@@ -12,7 +13,12 @@ class AbstractSensorService(AbstractModularBaseService):
         super().__init__(name)
         self.pollInterval = self.getServiceConfig().get("pollInterval", pollInterval)
         self.publishInterval = self.getServiceConfig().get("publishInterval", publishInterval)
-        self.appendHostnameToTopic = self.getServiceConfig().get("appendHostnameToTopic", False)
+        self.mqttTopic = self.getServiceConfig().get("mqttTopic", None)
+        mqttFlagsInConfig = self.getServiceConfig().get("mqttFlags", None)
+        if (mqttFlagsInConfig != None):
+            self.mqttFlags = MqttSendFlags.parse(mqttFlagsInConfig)
+        else:
+            self.mqttFlags = MqttSendFlags.ADD_BASE_TOPIC | MqttSendFlags.ADD_HOSTNAME | MqttSendFlags.ADD_TIMESTAMP
         self.running = False
         self.publishedState = None
         self.lastPublishTime = None
@@ -44,7 +50,7 @@ class AbstractSensorService(AbstractModularBaseService):
             self.getLoggingService().debug(self.name, f"publishedState: {self.publishedState} -> newState: {newState}")
             if newState != None and (self.publishedState == None or self.hasSignificantChange(self.publishedState, newState) or self.publishIntervalExceeded()):
                 self.getLoggingService().debug(self.name, f"publishing newState: {newState}")
-                self.publishState(self.name, newState)
+                self.publishState(newState)
         except Exception as e:
             self.getLoggingService().debug(self.name, f"Fehler im Poll-Loop: {e}")
 
@@ -60,15 +66,26 @@ class AbstractSensorService(AbstractModularBaseService):
     def hasSignificantChange(self, oldState, newState) -> bool:
         return oldState != newState
 
-    def publishState(self, mqttTopic: str, state):
-        readDateTime = datetime.now().isoformat()
-        payload = json.dumps({
-            "state": state,
-            "timestamp": readDateTime
-        })
+    def publishState(self, state):
+        flags = self.getMqttFlags()
+        topic = self.getMqttTopic()
+        if (self.mqttTopic != None):
+            topic = self.mqttTopic
+        # This is not a nice workaround, as 
+        # TODO move the wrapping of the message to a static method instead of mqtt service
+        if MqttSendFlags.ADD_TIMESTAMP in flags:
+            message = state
+        else:
+            message = json.dumps(state)
+        self.getMqttService().sendMessage(topic, message, flags)
         self.lastPublishTime = time.time()
         self.publishedState = state
-        self.getMqttService().sendMessage(self.name, payload, self.appendHostnameToTopic)
+
+    def getMqttTopic(self):
+        return self.name
+
+    def getMqttFlags(self):
+        return self.mqttFlags
 
     def activate(self) -> bool:
         if not self.active or not self.running:

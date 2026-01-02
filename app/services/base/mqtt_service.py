@@ -1,6 +1,10 @@
 import paho.mqtt.client as mqtt
+from datetime import datetime
+import json
+
 from app.services.abstract_configurable_service import AbstractConfigurableService
 from app.services.di_helper import registerService
+from app.services.base.mqtt_send_flags import MqttSendFlags
 
 class MqttService(AbstractConfigurableService):
     """
@@ -14,6 +18,7 @@ class MqttService(AbstractConfigurableService):
 
         self.inTopic = self.getServiceConfig().get("inTopic", "")
         self.baseOutTopic = self.getServiceConfig().get("baseOutTopic", "")
+        self.hostname = self.getGlobalConfig().get("hostname", "")
 
         # Set the will message, when the Raspberry Pi is powered off, or the network is interrupted abnormally, it will send the will message to other clients
         self.client.will_set(f"{self.baseOutTopic}/logging", b'{"status": "Off"}')
@@ -43,12 +48,21 @@ class MqttService(AbstractConfigurableService):
         self.sendMessage("logging", f"I got your message {msg}")
         self.getLoggingService().debug(self.name, f" Got mqtt message with topic {msg.topic} and payload {msg.payload}")
 
-    def sendMessage(self, topicAppendix: str, payload: str, addHostName = False):
-        hostname = self.getGlobalConfig().get("hostname", "")
-        scopedHostnameTopic = ""
-        if (hostname != "" and addHostName == True):
-            scopedHostnameTopic = f"{hostname}/"
-        topic = f"{self.baseOutTopic}/{scopedHostnameTopic}{topicAppendix}"
+    def sendMessage(self, topic: str, payload: str, flags: MqttSendFlags = MqttSendFlags.NONE):
+        self.getLoggingService().debug(self.name, f"MQTT flags given: {flags}")
+
+        if MqttSendFlags.ADD_HOSTNAME in flags and self.hostname != "":
+            topic = f"{self.hostname}/{topic}"
+
+        if MqttSendFlags.ADD_BASE_TOPIC in flags and self.baseOutTopic != "":
+            topic = f"{self.baseOutTopic}/{topic}"
+
+        if MqttSendFlags.ADD_TIMESTAMP in flags:
+            payload = json.dumps({
+                "state": payload,
+                "timestamp": datetime.now().isoformat()
+            })
+
         self.getLoggingService().debug(self.name, f" sending mqtt message to topic {topic} with payload {payload}")
         self.client.publish(f"{topic}", payload)
 

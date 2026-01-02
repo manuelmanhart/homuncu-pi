@@ -30,6 +30,7 @@ class BinarySensorService(AbstractSensorService):
             self.pi.set_mode(pin, pigpio.INPUT)
             self.pi.set_pull_up_down(pin, pull)
             self.sensors.append(sensor)
+            self.mqttTopic = None
 
     def readState(self):
         """
@@ -39,12 +40,11 @@ class BinarySensorService(AbstractSensorService):
         if self.sensors:
             for sensor in self.sensors:
                 pinState = self.pi.read(sensor["pin"])
-                state = sensor["labelLow"] if pinState == 0 else sensor["labelHigh"]
-                sensorStates[sensor["id"]] = state
+                sensorStates[sensor["id"]] = pinState
 
         return sensorStates
 
-    def publishState(self, mqttTopic: str, state):
+    def publishState(self, state):
         """
         Publishes each sensor independently based on change detection and updates the publishedState at the end.
         """
@@ -57,8 +57,17 @@ class BinarySensorService(AbstractSensorService):
             if not publishNeccessary and sensor["lastState"] == singleSensorState:
                 continue
 
-            # Publish via parent logic
-            super().publishState(sensor["mqttTopic"], singleSensorState)
+            publishState = {
+                "number": singleSensorState,
+                "label": sensor["labelLow"] if singleSensorState == 0 else sensor["labelHigh"]
+            }
 
+            # Publish via parent logic
+            self.mqttTopic = sensor["mqttTopic"]
+            super().publishState(publishState)
             sensor["lastState"] = singleSensorState
+
         self.publishedState = state
+
+    def getMqttTopic(self):
+        return self.mqttTopic

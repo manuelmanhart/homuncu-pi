@@ -8,6 +8,7 @@ WORK_DIR="$(cd "$(dirname "$0")"; pwd)"
 PORT=8000
 SERVICE_FILE_NAME="${SERVICE_NAME}.service"
 SERVICE_FILE_PATH="/etc/systemd/system/${SERVICE_FILE_NAME}"
+HELP_PATH=${BASH_SOURCE%/*}/help
 
 function install() {
     echo "[INFO] Installing ${SERVICE_NAME} service..."
@@ -47,13 +48,18 @@ EOF
     echo "[INFO] Installation successful!"
     echo "  Check service state:  sudo systemctl status ${SERVICE_NAME}"
     echo "  Tail logs:            journalctl -u ${SERVICE_NAME} -f"
+    echo "                     or ./service.sh status"
     echo "  Call API:             http://<pi-ip>:${PORT}/status"
 }
 
 function status() {
     echo "[INFO] Status of ${SERVICE_NAME} service..."
-
+    local options="$*"
+    if [ "$options" != "" ]; then
+        echo "OPTIONS: $options"
+    fi
     local status=$(sudo systemctl status ${SERVICE_FILE_NAME})
+
     if [ "$status" == "Unit ${SERVICE_FILE_NAME} could not be found." ]; then
         echo "[INFO] Service ${SERVICE_NAME} is not installed."
     else
@@ -61,7 +67,7 @@ function status() {
         if [ "$isActive" != "" ]; then
             echo "[INFO] Service ${SERVICE_NAME} is running"
             echo ""
-            journalctl -u ${SERVICE_NAME} -f
+            journalctl -u ${SERVICE_NAME} ${options} -f
         else
             echo "[INFO] Service ${SERVICE_NAME} not running"
         fi

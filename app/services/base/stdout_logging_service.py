@@ -1,7 +1,5 @@
 from datetime import datetime
 
-from app.services.di_helper import registerService
-
 # StdoutLoggingService cannot inherit any of the service classes as this would result in a circular dependency
 # because AbstractBaseService imports the StdoutLoggingService
 class StdoutLoggingService():
@@ -15,8 +13,18 @@ class StdoutLoggingService():
         "ERROR": 40
     }
 
-    def __init__(self):
+    def __init__(self, registry):
         self.config = {}
+        self.name = "loggingImpl"
+        return
+
+    def onReady(self):
+        return
+
+    def getState(self):
+        return
+
+    def handleShutdownService(self):
         return
 
     def debug(self, className, message: str):
@@ -55,6 +63,3 @@ class StdoutLoggingService():
 
     def setConfig(self, config: dict):
         self.config = config
-
-# Service in di registrieren
-registerService(StdoutLoggingService, StdoutLoggingService())

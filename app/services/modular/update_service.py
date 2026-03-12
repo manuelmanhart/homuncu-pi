@@ -1,16 +1,15 @@
 import subprocess
-import json
-import threading
-import time
 import requests
-import paho.mqtt.client as mqtt
 
 from app.services.abstract_sensor_service import AbstractSensorService
 
 class UpdateService(AbstractSensorService):
-    def __init__(self):
-        super().__init__("update")
+    def __init__(self, registry):
+        super().__init__("update", registry)
+
+    def onReady(self):
         self.repoUrl = self.getServiceConfig().get("repoUrl", "https://www.manhart.space/dl/raspi-controller")
+        super().onReady()
 
     def readState(self):
         """Prüft System- und Script-Updates"""
@@ -56,3 +55,26 @@ class UpdateService(AbstractSensorService):
             return {"error": f"HTTP {response.status_code}"}
         except Exception as e:
             return {"error": str(e)}
+
+    def onMqttMessage(self, message):
+        currentState = self.readState()
+        self.getLoggingService().info(self.name, f"got message {message}")
+        config = self.getServiceConfig()
+
+        self.getLoggingService().debug(self.name, f" serviceConfig: {config}")
+
+        if not message.get("repo"):
+            self.getLoggingService().warn(self.name, "Please add a repository name in your message like: {\"repo\": \"myRepository1\"}")
+        else:
+            for r in config.get("repos", []):
+                if message.get("repo") == r.get("name"):
+                    self.getLoggingService().info(self.name, f"updating repository {r.get("name")} now")
+                    workdir = r.get("path")
+                    result = subprocess.run(
+                        ["git", "pull"],
+                        cwd=workdir,
+                        capture_output=True,
+                        text=True
+                    )
+                    self.getLoggingService().info(f"result: {result}")
+                    return

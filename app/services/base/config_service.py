@@ -1,12 +1,12 @@
 import os
 import yaml
 from app.env_var_resolver import resolveVariable
-from app.services.di_helper import registerService
 from app.services.abstract_base_service import AbstractBaseService
 
 class ConfigService(AbstractBaseService):
-    def __init__(self):
-        super().__init__("config")
+    def __init__(self, registry):
+        print(f"registry {registry}")
+        super().__init__("config", registry)
 
     def _expand(self, obj):
         """Rekursiv über dict/list/str ersetzen."""
@@ -44,6 +44,3 @@ class ConfigService(AbstractBaseService):
 
 # TODO implement update config functions which saves to config.yaml file
 # TODO implement merging of the two yamls so we just override what we need from default_config.yaml
-
-# Service in di registrieren
-registerService(ConfigService, ConfigService())

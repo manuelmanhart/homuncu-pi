@@ -3,10 +3,13 @@ import socket
 
 # TODO check
 class IpAddressService(AbstractSensorService):
-    def __init__(self):
-        super().__init__("ipaddress", 60 * 5, 0)
+    def __init__(self, registry):
+        super().__init__("ipaddress", registry, 60 * 5, 0)
+
+    def onReady(self):
         self.ipToConnectTo = self.getServiceConfig().get("ipToConnectTo", "8.8.8.8")
         self.portToConnectTo = self.getServiceConfig().get("portToConnectTo", 80)
+        super().onReady()
 
     def readState(self):
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -22,4 +25,7 @@ class IpAddressService(AbstractSensorService):
 
     def hasSignificantChange(self, oldState, newState) -> bool:
         self.getLoggingService().debug(self.name, f" hasSignificantChange {oldState} - {newState} -> results in {oldState != newState}")
-        return oldState != newState
+        hasChanged = (oldState != newState)
+        if hasChanged:
+            self.getServiceByName("mqtt").setIpAddress(newState)
+        return hasChanged

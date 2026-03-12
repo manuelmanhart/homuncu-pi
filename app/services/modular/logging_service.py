@@ -1,8 +1,8 @@
 from app.services.abstract_sensor_service import AbstractModularBaseService
 
 class LoggingService(AbstractModularBaseService):
-    def __init__(self):
-        super().__init__("logging")
+    def __init__(self, registry):
+        super().__init__("logging", registry)
 
     def readState(self):
         config = self.getServiceConfig()

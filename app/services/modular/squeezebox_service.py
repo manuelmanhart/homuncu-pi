@@ -2,8 +2,8 @@ from app.services.abstract_modular_base_service import AbstractModularBaseServic
 import subprocess
 
 class SqueezeboxService(AbstractModularBaseService):
-    def __init__(self):
-        super().__init__("squeezebox")
+    def __init__(self, registry):
+        super().__init__("squeezebox", registry)
 
     def readState(self) -> bool:
         result = subprocess.run(

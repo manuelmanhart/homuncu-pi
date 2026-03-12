@@ -3,8 +3,8 @@ import subprocess
 
 # TODO implement correctly
 class ReadOnlyService(AbstractModularBaseService):
-    def __init__(self):
-        super().__init__("readonly")
+    def __init__(self, registry):
+        super().__init__("readonly", registry)
 
     def readState(self) -> bool:
         return False

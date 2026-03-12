@@ -1,19 +1,21 @@
 from app.services.abstract_base_service import AbstractBaseService
 import time
 from app.services.base.config_service import ConfigService
-from app.services.di_helper import getService
 
 class AbstractConfigurableService(AbstractBaseService):
     """
     Abstrakte Basisklasse für alle Services, welche die Konfiguration auslesen oder speichern
     """
-    def __init__(self, name: str):
+    def __init__(self, name: str, registry):
         # initbase variables
-        super().__init__(name)
-        self.cacheTTL = self.getGlobalConfig().get("cacheTTL", 10)
+        super().__init__(name, registry)
+
+    def onReady(self):
+        self.cacheTTL = self.getGlobalConfig().get("cacheTTL", self.cacheTTL)
+        super().onReady()
 
     def _getConfigService(self):
-        return getService(ConfigService)
+        return self.getService(ConfigService)
 
     def getServiceConfig(self) -> dict:
         if not self.name or self.name == None:

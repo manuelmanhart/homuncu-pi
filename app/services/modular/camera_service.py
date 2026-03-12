@@ -3,8 +3,8 @@ import subprocess
 
 # TODO implement correctly
 class CameraService(AbstractModularBaseService):
-    def __init__(self):
-        super().__init__("camera")
+    def __init__(self, registry):
+        super().__init__("camera", registry)
 
     def readState(self):
         return False

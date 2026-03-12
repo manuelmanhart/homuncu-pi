@@ -1,14 +1,13 @@
-import time
 import signal
-import threading
+import importlib
 import importlib.util
 import inspect
 import os
+
 from app.services.abstract_modular_base_service import AbstractModularBaseService
 from app.services.abstract_sensor_service import AbstractSensorService
+from app.services.service_registry import ServiceRegistry
 
-services = {}
-running = True
 
 def discoverBaseServices():
     discoverServicesInPackage("base")
@@ -22,56 +21,41 @@ def discoverServicesInPackage(package: str):
 
     for filename in os.listdir(SERVICES_DIR):
         if isService(filename):
-            module_path = os.path.join(SERVICES_DIR, filename)
-            module_name = filename[:-3]  # ohne .py
-            spec = importlib.util.spec_from_file_location(module_name, module_path)
-            module = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(module)
+            module_name = f"app.services.{package}.{filename[:-3]}"
+            module = importlib.import_module(module_name)
 
             # Suche Service-Klassen
             for name, obj in inspect.getmembers(module, inspect.isclass):
-                if issubclass(obj, AbstractModularBaseService) and obj is not AbstractModularBaseService and obj is not AbstractSensorService:
-                    print(f"[INFO] {name} init service...")
-                    instance = obj()
-                    services[instance.name] = instance
-                    print(f"[INFO] {name} init successfully - active: {instance.active} ")
+                if obj.__module__ != module.__name__ or inspect.isabstract(obj):
+                    continue
+                #if issubclass(obj, AbstractModularBaseService) and obj is not AbstractModularBaseService and obj is not AbstractSensorService:
+                print(f"[INFO] {name} - {filename} init service...")
+                instance = obj(registry)
+                registry.register(instance)
 
 def isService(filename):
     return filename.endswith("service.py") \
         and not filename.startswith("__") \
-        and not filename.startswith("abstract") \
-        and not filename.endswith("helper.py")
+        and not filename.startswith("abstract")
 
-def loopReadingServices():
-    while running:
-        for name, service in services.items():
-            try:
-                state = service.getState()
-            except Exception as e:
-                print(f"[ERROR] {name} status failed: {e}")
-        time.sleep(10)
-
-def handleShutdownServices(sig, frame):
+def handleShutdown(sig, frame):
     global running
     print("[INFO] Shutting down...")
     running = False
-    for name, service in services.items():
-        service.handleShutdownService()
+    registry.handleShutdownServices()
 
-signal.signal(signal.SIGINT, handleShutdownServices)
-signal.signal(signal.SIGTERM, handleShutdownServices)
+signal.signal(signal.SIGINT, handleShutdown)
+signal.signal(signal.SIGTERM, handleShutdown)
 
 if __name__ == "__main__":
     # TODO read projectName and projectVersion dynamically
     projectName="RaspiController"
-    projectVersion="1.0.0-beta"
+    projectVersion="1.1.0-wip (H)"
     print(f"[INFO] Starting {projectName} v{projectVersion}")
 
+    registry = ServiceRegistry()
     discoverBaseServices()
     discoverModularServices()
-
+    registry.readyServices()
     print("[INFO] Start reading loop")
-    threading.Thread(target=loopReadingServices, daemon=True).start()
-
-    while running:
-        time.sleep(1)
+    registry.loopReadingServices()

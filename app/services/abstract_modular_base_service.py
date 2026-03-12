@@ -1,17 +1,20 @@
 from app.services.abstract_configurable_service import AbstractConfigurableService
 from app.services.base.mqtt_service import MqttService
-from app.services.di_helper import getService
+from app.services.service_registry import ServiceRegistry
 
 class AbstractModularBaseService(AbstractConfigurableService):
     """
     Abstract base class for all modular services
     """
-    def __init__(self, name: str):
-        super().__init__(name)
-        self.active = self.getServiceConfig().get("active", False)
-        self.getLoggingService().debug(self.name, f"service config {self.getServiceConfig()} -> active {self.active}")
+    def __init__(self, name: str, registry):
+        super().__init__(name, registry)
 
-    def onMqttMessage(self):
+    def onReady(self):
+        self.active = self.getServiceConfig().get("active", self.active)
+        self.getLoggingService().debug(self.name, f"service config {self.getServiceConfig()} -> active {self.active}")
+        super().onReady()
+
+    def onMqttMessage(self, message):
         # TBD the mqtt service should send an internal event / message
         return
 
@@ -25,4 +28,4 @@ class AbstractModularBaseService(AbstractConfigurableService):
             return super().getState()
 
     def getMqttService(self):
-        return getService(MqttService)
+        return self.getService(MqttService)

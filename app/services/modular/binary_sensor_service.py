@@ -2,9 +2,11 @@ import pigpio
 from app.services.abstract_sensor_service import AbstractSensorService
 
 class BinarySensorService(AbstractSensorService):
-    def __init__(self):
+    def __init__(self, registry):
         self.sensors = []  
-        super().__init__("binarySensor")
+        super().__init__("binarySensor", registry)
+
+    def onReady(self):
         # List of sensor definitions
         config = self.getServiceConfig()
 
@@ -31,6 +33,7 @@ class BinarySensorService(AbstractSensorService):
             self.pi.set_pull_up_down(pin, pull)
             self.sensors.append(sensor)
             self.mqttTopic = None
+        super().onReady()
 
     def readState(self):
         """

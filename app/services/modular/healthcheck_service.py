@@ -3,10 +3,13 @@ from pathlib import Path
 from app.services.abstract_sensor_service import AbstractSensorService
 
 class HealthcheckService(AbstractSensorService):
-    def __init__(self):
-        super().__init__("healthcheck")
+    def __init__(self, registry):
+        super().__init__("healthcheck", registry)
         self.installed = True
+
+    def onReady(self):
         self.currentHealthcheckPath = Path( self.getServiceConfig().get("currentHealthcheckPath", "/tmp/current-healthcheck.json") )
+        super().onReady()
 
     def readState(self):
         """Liest den aktuellen Healthcheck-Status aus der Datei"""

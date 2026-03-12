@@ -6,13 +6,17 @@ import json
 from app.services.abstract_modular_base_service import AbstractModularBaseService
 from app.services.base.mqtt_service import MqttService
 from app.services.base.mqtt_send_flags import MqttSendFlags
-from app.services.di_helper import getService
+from app.services.service_registry import ServiceRegistry
 
 class AbstractSensorService(AbstractModularBaseService):
-    def __init__(self, name, pollInterval = 15, publishInterval = 60 * 15):
-        super().__init__(name)
-        self.pollInterval = self.getServiceConfig().get("pollInterval", pollInterval)
-        self.publishInterval = self.getServiceConfig().get("publishInterval", publishInterval)
+    def __init__(self, name, registry, pollInterval = 15, publishInterval = 60 * 15):
+        super().__init__(name, registry)
+        self.pollInterval = pollInterval
+        self.publishInterval = publishInterval
+
+    def onReady(self):
+        self.pollInterval = self.getServiceConfig().get("pollInterval", self.pollInterval)
+        self.publishInterval = self.getServiceConfig().get("publishInterval", self.publishInterval)
         self.mqttTopic = self.getServiceConfig().get("mqttTopic", None)
         mqttFlagsInConfig = self.getServiceConfig().get("mqttFlags", None)
         if (mqttFlagsInConfig != None):
@@ -27,6 +31,7 @@ class AbstractSensorService(AbstractModularBaseService):
         self.getLoggingService().debug(self.name, f"active: {self.active}")
         if (self.active):
             self.activate()
+        super().onReady()
 
     def getState(self):
         if (not self.active):

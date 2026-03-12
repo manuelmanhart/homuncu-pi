@@ -1,25 +1,36 @@
 from abc import ABC, abstractmethod
 from app.services.base.stdout_logging_service import StdoutLoggingService
-from app.services.di_helper import getService
+from app.services.service_registry import ServiceRegistry
 import time
 
 class AbstractBaseService(ABC):
     """
     Abstrakte Basisklasse für alle Services
     """
-    def __init__(self, name: str, cacheTTL = 10):
+    def __init__(self, name: str, registry, cacheTTL = 10):
         # initbase variables
+        self.registry = registry
         self.state = None
         self.lastReadTime = 0
         self.name = name
+        self.active = False
         # init variables based on state or config
         self.cacheTTL = cacheTTL
 
-    def init(self):
-        self.getLoggingService().debug(self.name, f"Service init was successful")
+    def onReady(self):
+        self.getLoggingService().debug(self.name, f"Service {self.name} init was successful, active: {self.active}")
+        return
+
+    def getService(self, serviceClass):
+        #print(f"registry: {self.registry} - {self.registry.__class__}")
+        return self.registry.get(serviceClass)
+
+    def getServiceByName(self, serviceName):
+        #print(f"registry: {self.registry} - {self.registry.__class__}")
+        return self.registry.getByName(serviceName)
 
     def getLoggingService(self):
-        return getService(StdoutLoggingService)
+        return self.getService(StdoutLoggingService)
 
     def getState(self) -> dict:
         if (not self.isCacheValid()):

@@ -7,8 +7,10 @@ sys.path.append(os.path.dirname(__file__))
 from app.services.modular.temp_sensor_helper import sensor
 
 class TemperatureService(AbstractSensorService):
-    def __init__(self):
-        super().__init__("temperature")
+    def __init__(self, registry):
+        super().__init__("temperature", registry)
+
+    def onReady(self):
         self.temperatureTolerance = self.getServiceConfig().get("temperatureTolerance", 0.5)
         self.humidityTolerance = self.getServiceConfig().get("humidityTolerance", 3)
         self.humidityCorrection40 = self.getServiceConfig().get("humidityCorrection40", 0)
@@ -22,6 +24,7 @@ class TemperatureService(AbstractSensorService):
             raise RuntimeError("Kann keine Verbindung zum pigpio daemon herstellen")
         self.sensor = sensor(self.pi, self.gpioPin)
         self.sensor.trigger()  # initial trigger
+        super().onReady()
 
     def readState(self):
         try:

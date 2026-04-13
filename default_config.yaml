@@ -50,5 +50,14 @@ services:
   readonly:
     active: False
   ipaddress:
-    active: False
+    active: True
     mqttFlags: NONE
+  git:
+    active: True
+    repos:
+      - name: "repo1"
+        path: "~/test-git-repo1"
+      - name: "repo2"
+        path: "~/test-git-repo2"
+      - name: "ssh"
+        path: "/home/manuel/.ssh"

@@ -2,6 +2,11 @@ from app.services.abstract_base_service import AbstractBaseService
 import time
 from app.services.base.config_service import ConfigService
 
+# AbstractConfigurableService
+# ---------------------------------
+# Extends AbstractBaseService to add configuration handling via ConfigService.
+# Config keys (per‑service) are read from the global config under "services.<service_name>".
+# MQTT: No direct MQTT use, but subclasses can call getMqttService() inherited from AbstractModularBaseService.
 class AbstractConfigurableService(AbstractBaseService):
     """
     Abstrakte Basisklasse für alle Services, welche die Konfiguration auslesen oder speichern

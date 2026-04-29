@@ -1,5 +1,10 @@
 from app.services.abstract_sensor_service import AbstractModularBaseService
 
+# LoggingService
+# ------
+# Reads its own configuration via ConfigService and forwards it to the StdoutLoggingService.
+# Config keys (under services.logging): any keys accepted by StdoutLoggingService (e.g. per‑class log levels).
+# MQTT: No MQTT interaction – purely internal logging.
 class LoggingService(AbstractModularBaseService):
     def __init__(self, registry):
         super().__init__("logging", registry)

@@ -3,6 +3,13 @@ import yaml
 from app.env_var_resolver import resolveVariable
 from app.services.abstract_base_service import AbstractBaseService
 
+# ConfigService
+# ------
+# Loads configuration from `config.yaml` (or `default_config.yaml` if missing) and expands environment variables.
+# Config structure:
+#   global: {...} – global settings (e.g. hostname, cacheTTL).
+#   services: { <service_name>: { … } } – per‑service configuration used by AbstractConfigurableService.
+# MQTT: No direct MQTT usage.
 class ConfigService(AbstractBaseService):
     def __init__(self, registry):
         print(f"registry {registry}")

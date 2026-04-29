@@ -3,6 +3,11 @@ from app.services.base.stdout_logging_service import StdoutLoggingService
 from app.services.service_registry import ServiceRegistry
 import time
 
+# AbstractBaseService
+# -------------------------------------------------
+# Base class for all services. Provides common lifecycle hooks, state caching, and logging.
+# Config: None (subclasses read their own config via ConfigService).
+# MQTT: Not directly used, but subclasses can obtain MqttService via getMqttService().
 class AbstractBaseService(ABC):
     """
     Abstrakte Basisklasse für alle Services

@@ -1,6 +1,12 @@
 import time
 
+# ServiceRegistry
+# ------
+# Holds references to all instantiated services and provides lookup helpers.
+# Config: None (services are registered at runtime).
+# MQTT: No direct MQTT usage – services retrieve MqttService via getService().
 class ServiceRegistry:
+
     def __init__(self):
         self._services_by_name = {}
         self._services_by_class = {}

@@ -1,6 +1,17 @@
 import pigpio
 from app.services.abstract_sensor_service import AbstractSensorService
 
+# BinarySensorService
+# ------
+# Reads multiple GPIO pins as binary sensors and publishes their state via MQTT.
+# Config keys (under services.binarySensor):
+#   sensors: list of sensor definitions, each with:
+#       id (str) – sensor identifier.
+#       pin (int) – GPIO pin number.
+#       pullUpOrDown (str) – "up" (default) or "down" for pull resistor.
+#       labelHigh / labelLow (str) – human readable labels.
+#       mqttTopic (str) – optional MQTT topic for this sensor (defaults to "binarySensor/<id>").
+# MQTT: Publishes each sensor change using getMqttService().sendMessage() with flags ADD_BASE_TOPIC|ADD_HOSTNAME|ADD_TIMESTAMP.
 class BinarySensorService(AbstractSensorService):
     def __init__(self, registry):
         self.sensors = []  

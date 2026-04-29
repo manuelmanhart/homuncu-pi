@@ -2,6 +2,13 @@ from app.services.abstract_sensor_service import AbstractSensorService
 import socket
 
 # TODO check
+# IpAddressService
+# ------
+# Determines the local IP address used to reach a configurable remote host/port.
+# Config keys (under services.ipaddress):
+#   ipToConnectTo (str) – remote IP to connect to (default "8.8.8.8").
+#   portToConnectTo (int) – remote port (default 80).
+# MQTT: Publishes its own IP via the MqttService; also updates the MQTT service's `ipAddress` filter when the address changes.
 class IpAddressService(AbstractSensorService):
     def __init__(self, registry):
         super().__init__("ipaddress", registry, 60 * 5, 0)

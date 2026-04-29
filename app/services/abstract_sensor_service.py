@@ -8,6 +8,15 @@ from app.services.base.mqtt_service import MqttService
 from app.services.base.mqtt_send_flags import MqttSendFlags
 from app.services.service_registry import ServiceRegistry
 
+# AbstractSensorService
+# ---------------------------------
+# Extends AbstractModularBaseService to implement periodic polling sensors and MQTT publishing.
+# Config keys (per‑service):
+#   pollInterval (int) – seconds between sensor reads.
+#   publishInterval (int) – seconds between forced MQTT publishes.
+#   mqttTopic (str) – MQTT topic prefix (default is the service name).
+#   mqttFlags (str) – pipe‑separated list of MqttSendFlags (e.g. "ADD_BASE_TOPIC,ADD_HOSTNAME,ADD_TIMESTAMP").
+# MQTT: Uses getMqttService().sendMessage() with configured flags; receives messages via onMqttMessage().
 class AbstractSensorService(AbstractModularBaseService):
     def __init__(self, name, registry, pollInterval = 15, publishInterval = 60 * 15):
         super().__init__(name, registry)

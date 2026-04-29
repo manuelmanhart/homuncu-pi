@@ -2,6 +2,12 @@ import json
 from pathlib import Path
 from app.services.abstract_sensor_service import AbstractSensorService
 
+# HealthcheckService
+# ------
+# Reads a JSON health‑check file and publishes its content via MQTT.
+# Config keys (under services.healthcheck):
+#   currentHealthcheckPath (str) – path to the JSON file (default "/tmp/current-healthcheck.json").
+# MQTT: No publishing implemented yet; can be added by extending onReady()/publishState().
 class HealthcheckService(AbstractSensorService):
     def __init__(self, registry):
         super().__init__("healthcheck", registry)

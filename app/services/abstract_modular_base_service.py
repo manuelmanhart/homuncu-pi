@@ -2,6 +2,13 @@ from app.services.abstract_configurable_service import AbstractConfigurableServi
 from app.services.base.mqtt_service import MqttService
 from app.services.service_registry import ServiceRegistry
 
+# AbstractModularBaseService
+# ---------------------------------
+# Base for services that are loaded dynamically (modular). Handles activation flag and MQTT integration.
+# Config keys (per‑service):
+#   active: bool – whether the service should be started.
+#   mqttTopic / mqttFlags – optional MQTT publishing settings (used by AbstractSensorService).
+# MQTT: Provides getMqttService() to send messages, and onMqttMessage() hook for incoming messages.
 class AbstractModularBaseService(AbstractConfigurableService):
     """
     Abstract base class for all modular services

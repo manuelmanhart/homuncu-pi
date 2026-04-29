@@ -2,10 +2,20 @@ import pigpio
 import sys
 import os
 import subprocess
+import time
 from app.services.abstract_sensor_service import AbstractSensorService
 sys.path.append(os.path.dirname(__file__)) 
 from app.services.modular.temp_sensor_helper import sensor
 
+# TemperatureService
+# ------
+# Reads a DHT22 (or configurable) temperature/humidity sensor via pigpio and publishes changes.
+# Config keys (under services.temperature):
+#   pin (int) – GPIO pin number (default 4).
+#   sensorType (str) – sensor model, e.g. "DHT22".
+#   temperatureTolerance / humidityTolerance (float) – thresholds for significant change.
+#   temperatureCorrection, humidityCorrection40, humidityCorrection75 (float) – optional calibration offsets.
+# MQTT: Publishes temperature/humidity readings on the configured `mqttTopic` (default service name) using flags ADD_BASE_TOPIC|ADD_HOSTNAME|ADD_TIMESTAMP.
 class TemperatureService(AbstractSensorService):
     def __init__(self, registry):
         super().__init__("temperature", registry)
@@ -19,21 +29,55 @@ class TemperatureService(AbstractSensorService):
         self.gpioPin = self.getServiceConfig().get("pin", 4)
         self.sensor_type = self.getServiceConfig().get("sensorType", "DHT22")
 
-        self.pi = pigpio.pi()
-        if not self.pi.connected:
-            raise RuntimeError("Kann keine Verbindung zum pigpio daemon herstellen")
-        self.sensor = sensor(self.pi, self.gpioPin)
-        self.sensor.trigger()  # initial trigger
+        self.ensureConnected()
+        self.restartSensor()
         super().onReady()
 
+    def restartSensor(self):
+        if (self.sensor != None):
+            try:
+                self.sensor.cancel()
+            except Exception:
+                pass
+            time.sleep(3)  # DHT22 braucht Zeit zum Erholen
+        self.sensor = sensor(self.pi, self.gpioPin)
+
+    def ensureConnected(self):
+        if self.pi == None or not self.pi.connected:
+            self.getLoggingService().warn(self.name, "pigpio nicht verbunden, reconnect...")
+            try:
+                self.pi.stop()
+            except Exception:
+                pass
+            self.pi = pigpio.pi()
+            if not self.pi.connected:
+                raise RuntimeError("pigpio reconnect fehlgeschlagen")
+            self.sensor = sensor(self.pi, self.gpioPin)
+            self.sensor.trigger()
+
     def readState(self):
+        self.ensureConnected()
         try:
             self.getLoggingService().debug(self.name, f" reading sensor: {self.sensor}")
             if (self.sensor != None):
                 self.sensor.trigger()
-                import time; time.sleep(2)  # kurz warten auf Messung
+                time.sleep(2.5)  # kurz warten auf Messung
                 temperature = self.sensor.temperature()
                 humidity = self.sensor.humidity()
+                staleness = self.sensor.staleness()
+                self.getLoggingService().debug(
+                    self.name,
+                    f"Sensor-Stats: bad_CS={self.sensor.bad_checksum()}, "
+                    f"bad_SM={self.sensor.short_message()}, "
+                    f"bad_MM={self.sensor.missing_message()}, "
+                    f"staleness={self.sensor.staleness():.1f}s"
+                )
+                # -999 explizit abfangen
+                if temperature <= -999 or humidity <= -999 or staleness > 60::
+                    self.getLoggingService().warn(self.name, f"Ungültige Messung (temp={temperature}, hum={humidity}, staleness={staleness}s) - Sensor wird neu initialisiert")
+                    self.restartSensor()
+                    return {"error": "Sensor restarted, retry on next cycle"}
+
                 self.getLoggingService().debug(self.name, f" read temp {temperature} read hum {humidity}")
                 self.getLoggingService().debug(self.name, f" corrected temp {self.correctTemperature(temperature)} corrected hum {self.correctHumidity(humidity)}")
                 self.getLoggingService().debug(self.name, f" rounded temp {round(self.correctTemperature(temperature), 1)} rounded hum {round(self.correctHumidity(humidity), 1)}")
@@ -43,7 +87,7 @@ class TemperatureService(AbstractSensorService):
                 }
             else:
                 self.getLoggingService().warn(self.name, f" sensor not ready yet")
-                return { "Sensor not ready yet" }
+                return { "error": "Sensor not ready yet" }
         except Exception as e:
             return {"error": str(e)}
 
@@ -60,9 +104,12 @@ class TemperatureService(AbstractSensorService):
             return humidity
 
     def hasSignificantChange(self, oldState, newState) -> bool:
-        tempOverThreshold = self.isOverThreshold(oldState["temperature"], newState["temperature"], self.temperatureTolerance)
-        humOverThreshold = self.isOverThreshold(oldState["humidity"], newState["humidity"], self.humidityTolerance)
-        return tempOverThreshold or humOverThreshold
+        if (newState["humidity"] > 0):
+            tempOverThreshold = self.isOverThreshold(oldState["temperature"], newState["temperature"], self.temperatureTolerance)
+            humOverThreshold = self.isOverThreshold(oldState["humidity"], newState["humidity"], self.humidityTolerance)
+            return tempOverThreshold or humOverThreshold
+        else:
+            return False
 
     def isOverThreshold(self, numberA, numberB, tolerance):
         result = abs(numberA - numberB) > tolerance

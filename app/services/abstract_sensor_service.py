@@ -44,18 +44,21 @@ class AbstractSensorService(AbstractModularBaseService):
 
     def getState(self):
         if (not self.active):
-            return "Service is not active"
+            return { "error": "Service is not active" }
         else:
-            state = super().getState()
-            self.publishNewStateIfNeccessary(state)
-            return state
+            return super().getState()
 
     def pollSensorInThread(self):
         while self.running:
             # we need to start with waiting so the neccessary initializations can be made (since the subclasses call super first)
             time.sleep(self.pollInterval)
             try:
-                self.state = self.getState()
+                newState = self.getState()
+                if "error" in newState:
+                    self.getLoggingService().warn(self.name, f"Status-Aktualisierung fehlgeschlagen: {newState['error']}")
+                else:
+                    self.state = newState
+                    self.publishNewStateIfNeccessary(newState)
             except Exception as e:
                 self.getLoggingService().error(self.name, f"getState failed: {e}")
 

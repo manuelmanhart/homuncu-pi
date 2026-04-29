@@ -2,7 +2,7 @@
 set -e
 
 # === Konfiguration anpassen ===
-SERVICE_NAME="raspi-controller"
+SERVICE_NAME="homuncu-pi"
 WORK_DIR="$(cd "$(dirname "$0")"; pwd)"
 #USER="manuel"        # ggf. anpassen (z. B. dein Linux-User)
 PORT=8000
@@ -18,7 +18,7 @@ function install() {
         # systemd Service-Datei schreiben
         sudo tee "$SERVICE_FILE_PATH" > /dev/null <<EOF
 [Unit]
-Description=Pi Controller for plug and play homeautomation
+Description=Homuncu PI is your ghost in a PI for plug and play homeautomation
 After=network.target
 
 [Service]

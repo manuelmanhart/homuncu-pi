@@ -12,21 +12,19 @@
 [![MIT License][license-shield]][license-url]
 [![LinkedIn][linkedin-shield]][linkedin-url]
 
-
-
 <!-- PROJECT LOGO -->
 <br />
 <div align="center">
-  <a href="https://code.manhart.space/manuelmanhartit/raspi-controller">
-    <img src="docs/logo.png" alt="Logo" width="300">
+  <a href="https://code.manhart.space/manuelmanhartit/homuncu-pi">
+    <img src="docs/logo.jpg" alt="Logo" width="300">
   </a>
 
-  <h3 align="center">Raspi-Controller</h3>
+  <h3 align="center">Homuncu PI</h3>
 
   <p align="center">
-    This is Raspi-Controller, home automation made for easy plug and play.
+    This is Homuncu PI, your ghost in a PI for plug and play homeautomation
     <br />
-    <a href="https://code.manhart.space/manuelmanhartit/raspi-controller/issues/new">Create issue</a>
+    <a href="https://code.manhart.space/manuelmanhartit/homuncu-pi/issues/new">Create issue</a>
   </p>
 </div>
 
@@ -63,7 +61,7 @@
 
 I have a homeassistant installation running on a server. For integrating multiple sensors and other stuff (like multiroom audio) I needed a solution. Since I already had some old Raspberry PIs lying around from old projects I thought I could use them. I started with a small project for reading a DHT22 for temperature & humidity, but with the upgrade to bookworm it failed due to deprecated libraries.
 
-Also it was only taking care of temperature but nothing else and it was not very flexible / configurable. So I created a solution which I could extend easily and came up with this thing I call Raspi-Controller.
+Also it was only taking care of temperature but nothing else and it was not very flexible / configurable. So I created a solution which I could extend easily and came up with this thing I call Homuncu PI.
 
 In my first attempt I used REST via fastapi (for easy access) but it showed that this only works good on a raspberry pi 2 or newer. But I wanted compatibility to raspberry pi 1 as well, so I took a step back, removed the whole REST part and started thinking about mqtt for output and accessing the pi.
 
@@ -102,7 +100,7 @@ This software was built to brigde to different IOT hardware and make them availa
 
 The features are
 
-* Binary Sensors (low / high) like Reedswitches or PIR sensors - for intruder alert, motion detection,...
+* Binary Sensors (low / high) like Reedswitches or PIR sensors - for windows/doors open/closed, intruder alert, motion detection,...
 * Cameras - so you can see what is going on even when not at home
 * Healthcheck - you can get healthcheck information on the Raspberry PI like temp, cpu, mem, disk usage,...
 * IP Address - if your router sometimes changes IP Addresses (via DHCP), you can feed a DNS server (like unbound) always with current name & ip address combinations
@@ -110,7 +108,7 @@ The features are
 * Readonly mode - so the Raspberry PI is more resilient to power outages / issues
 * Squeezebox / Musicbox - For Multiroom Audio and as well so everyone can listen to their music easily
 * Temperature And Humidity Sensors - To track the environment of your house / flat
-* (Software) Update Service - So the Raspberry PI always stays up to date as well as Raspi-Controller itself
+* (Software) Update Service - So the Raspberry PI always stays up to date as well as Homuncu PI itself
 
 ### Configuration File
 
@@ -159,9 +157,9 @@ This is common in software craftmanship and made so we do not flood the logs wit
 To verify what is sent to the mqtt broker, follow these steps:
 
 1. Install an MQTT broker on a server
-2. Configure raspi-controller to use this as its broker (in `config.yaml`)
+2. Configure homuncu-pi to use this as its broker (in `config.yaml`)
 3. Set the `mqtt` logging configuration to `DEBUG` (see above on how to do this)
-3. Start raspi-controller (via `run.sh`) to see in the logs to which topic the sensor will write to
+3. Start homuncu-pi (via `run.sh`) to see in the logs to which topic the sensor will write to
 4. Subscribe to the according topic(s) in your software of choice (eg. homeassistant, mosquitto,...)
     1. To debug all mqtt traffic go into your mosquitto container (`docker exec -ti CONTAINER_NAME sh`)
     2. Then subscribe to all topics (`mosquitto_sub -h 127.0.0.1 -t home/#`)
@@ -193,6 +191,8 @@ Also see [understand the two potentiometers on a PIR sensor][pir-two-pot] or [co
 
 **1.1.0 - WIP**
 * Refactored `LoggingService` to change loglevel via config file
+* Refactored service lookup to a centralized registry
+* Renamed project from `RaspiController` to `Homuncu PI`
 
 **1.0.0**
 * Switched to [Semantic Versioning 2.0.0](https://semver.org/)
@@ -229,14 +229,19 @@ Also see [understand the two potentiometers on a PIR sensor][pir-two-pot] or [co
 
 ## Roadmap
 
-- [ ] Sending logging also via `$baseOutTopic/$hostname/logging`
-- [ ] Implement CameraService
-- [ ] Implement ReadonlyService
-- [ ] Get the config via MQTT and save the configuration into `config.yaml` file
+- [ ] Create a service for sending logging via MQTT, like `$baseOutTopic/$hostname/logging`
+- [ ] Implement CameraService for communication with the PI camera
+- [ ] Implement ReadonlyService for reading / changing the readonly state
+- [ ] Add a feature for playing Audiobooks via RFID Cards / Tags (similar to the popular Audioboxes for kids)
+- [ ] Add voice commands (via external open source projects?)
+- [ ] Get the config via MQTT messages and save the configuration into `config.yaml` file
 - [ ] Merge the configs read from `default_config.yaml` and `config.yaml` so one only needs to override the changes instead of copying all
+- [ ] Refactor the bash scripts
+- [ ] Create an easy to use setup wizard
+- [ ] Write a guide on how to extend by creating own services
 - [ ] Read incoming mqtt messages and forward them to the correct service
 
-See the [open issues](https://code.manhart.space/manuelmanhartit/raspi-controller/issues) for a full list of proposed features (and known issues).
+See the [open issues](https://code.manhart.space/manuelmanhartit/homuncu-pi/issues) for a full list of proposed features (and known issues).
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -273,16 +278,29 @@ Manuel Manhart - [@manuel.manhart](https://twitter.com/ManuelManhart) - manuel.m
 <!-- MARKDOWN LINKS & IMAGES -->
 <!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
 [issues-shield]: https://img.shields.io/badge/open-issues-yellow?style=for-the-badge
-[issues-url]: https://code.manhart.space/manuelmanhartit/raspi-controller/issues
+[issues-url]: https://code.manhart.space/manuelmanhartit/homuncu-pi/issues
 [linkedin-shield]: https://img.shields.io/badge/-LinkedIn-black.svg?style=for-the-badge&logo=linkedin&colorB=555
 [linkedin-url]: https://linkedin.com/in/manuel-manhart
 [license-shield]: https://img.shields.io/badge/license-mit-blue?style=for-the-badge
-[license-url]: https://code.manhart.space/manuelmanhartit/raspi-controller/src/branch/main/LICENSE.md
+[license-url]: https://code.manhart.space/manuelmanhartit/homuncu-pi/src/branch/main/LICENSE.md
 [product-screenshot]: docs/screenshot.png
-[product-components-diagram]: docs/components-diagram.png
+[product-components-diagram]: docs/homuncu-pi-overview.png
 [Python]: https://img.shields.io/badge/python-000000?logo=python&style=for-the-badge&
 [Python-url]: https://python.org/
 [Bash]: https://img.shields.io/badge/Bash-20232A?logo=gnubash&style=for-the-badge&
 [Bash-url]: https://bash.org/
 [pir-two-pot]: https://forum.arduino.cc/t/help-me-to-understand-the-two-potmeters-on-my-pir-sensor/372895
 [pir-two-pot-de]: https://tutorials-raspberrypi.de/raspberry-pi-bewegungsmelder-sensor-pir/
+
+## Icons
+
+* <a href="https://www.flaticon.com/free-icons/humidity" title="humidity icons">Humidity icons created by Pixel perfect - Flaticon</a>
+* <a href="https://www.flaticon.com/free-icons/fever" title="fever icons">Fever icons created by Freepik - Flaticon</a>
+* <a href="https://www.flaticon.com/free-icons/alarm" title="alarm icons">Alarm icons created by Freepik - Flaticon</a>
+* <a href="https://www.flaticon.com/free-icons/open-window" title="open window icons">Open window icons created by Ida Desi Mariana - Flaticon</a>
+* <a href="https://www.flaticon.com/free-icons/heater" title="heater icons">Heater icons created by Nikita Golubev - Flaticon</a>
+* <a href="https://www.flaticon.com/free-icons/cctv-camera" title="cctv camera icons">Cctv camera icons created by Freepik - Flaticon</a>
+* <a href="https://www.flaticon.com/free-icons/audio" title="audio icons">Audio icons created by Freepik - Flaticon</a>
+* <a href="https://www.flaticon.com/free-icons/audiobook" title="audiobook icons">Audiobook icons created by Andrean Prabowo - Flaticon</a>
+* <a href="https://www.flaticon.com/free-icons/smart-home" title="smart home icons">Smart home icons created by bqlqn - Flaticon</a>
+* <a href="https://www.flaticon.com/free-icons/motion-sensor" title="motion sensor icons">Motion sensor icons created by Nuricon - Flaticon</a>

@@ -8,7 +8,7 @@ class UpdateService(AbstractSensorService):
         super().__init__("update", registry)
 
     def onReady(self):
-        self.repoUrl = self.getServiceConfig().get("repoUrl", "https://www.manhart.space/dl/raspi-controller")
+        self.repoUrl = self.getServiceConfig().get("repoUrl", "https://homuncu-pi.manhart.space/dl/")
         super().onReady()
 
     def readState(self):

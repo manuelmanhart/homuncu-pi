@@ -1,4 +1,9 @@
-import signal
+# Homuncu PI Main Entrypoint
+# --------------------------
+# Starts the service registry, discovers base and modular services, and enters the main loop.
+# Config: Global config (via ConfigService) provides `projectName`, `projectVersion`, and other global settings.
+# MQTT: Services may publish/subscribe via MqttService; the main loop only coordinates service readiness and shutdown.
+
 import importlib
 import importlib.util
 import inspect
@@ -7,7 +12,6 @@ import os
 from app.services.abstract_modular_base_service import AbstractModularBaseService
 from app.services.abstract_sensor_service import AbstractSensorService
 from app.services.service_registry import ServiceRegistry
-
 
 def discoverBaseServices():
     discoverServicesInPackage("base")
@@ -49,7 +53,7 @@ signal.signal(signal.SIGTERM, handleShutdown)
 
 if __name__ == "__main__":
     # TODO read projectName and projectVersion dynamically
-    projectName="RaspiController"
+    projectName="Homuncu PI"
     projectVersion="1.1.0-wip (H)"
     print(f"[INFO] Starting {projectName} v{projectVersion}")
 

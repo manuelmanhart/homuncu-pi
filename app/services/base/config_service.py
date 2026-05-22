@@ -1,11 +1,24 @@
 import os
 import yaml
+from copy import deepcopy
 from app.env_var_resolver import resolveVariable
 from app.services.abstract_base_service import AbstractBaseService
 
+def _deep_merge(base, override):
+    """Merge `override` into `base` recursively. Returns a new dict."""
+    result = deepcopy(base)
+    for key, val in override.items():
+        if key in result and isinstance(result[key], dict) and isinstance(val, dict):
+            result[key] = _deep_merge(result[key], val)
+        else:
+            result[key] = deepcopy(val)
+    return result
+
 # ConfigService
 # ------
-# Loads configuration from `config.yaml` (or `default_config.yaml` if missing) and expands environment variables.
+# Loads default_config.yaml as base and overlays config.yaml on top.
+# This way config.yaml only needs values that differ from the defaults.
+# Environment variables are expanded after merging.
 # Config structure:
 #   global: {...} – global settings (e.g. hostname, cacheTTL).
 #   services: { <service_name>: { … } } – per‑service configuration used by AbstractConfigurableService.
@@ -25,29 +38,30 @@ class ConfigService(AbstractBaseService):
             return resolveVariable(obj)
         return obj
 
-    def readState(self):
-        base_dir = os.path.join(os.path.dirname( __file__ ), '..', '..', '..')
+    def _load_yaml(self, path):
+        with open(path, "r") as f:
+            raw = yaml.safe_load(f)
+            self.getLoggingService().debug(self.name, f" loaded {path}: {raw}")
+            return raw or {}
+
+     def readState(self):
+        base_dir = os.path.join(os.path.dirname(__file__), '..', '..', '..')
+        defaultConfigFile = os.path.join(base_dir, "default_config.yaml")
+        defaults = self._load_yaml(defaultConfigFile) 
+        if not os.path.exists(defaultConfigFile):
+            raise FileNotFoundError("default_config.yaml nicht gefunden")
 
         customConfigFile = os.path.join(base_dir, "config.yaml")
-        defaultConfigFile = os.path.join(base_dir, "default_config.yaml")
+        if os.path.exists(customConfigFile):
+            overrides = self._load_yaml(customConfigFile)
+            merged = _deep_merge(defaults, overrides)
+            self.getLoggingService().debug(self.name, f" merged with config.yaml")
+        else:
+            merged = defaults
 
-        path = customConfigFile if os.path.exists(customConfigFile) else defaultConfigFile
-        if not os.path.exists(path):
-            raise FileNotFoundError("Weder config.yaml noch default_config.yaml gefunden")
-
-        with open(path, "r") as f:
-            self.getLoggingService().debug(self.name, f" loading config file {path}")
-            raw = yaml.safe_load(f)
-            self.getLoggingService().debug(self.name, f" config {raw}")
-
-        # Expand environment placeholders recursively
-        cfg = self._expand(raw or {})
+        cfg = self._expand(merged)
         return cfg
 
     def getScopedConfig(self, scope) -> dict:
         config = self.getState()
-        #self.getLoggingService().debug(self.name, f" reading {scope} from config {config}")
         return config.get(scope, {})
-
-# TODO implement update config functions which saves to config.yaml file
-# TODO implement merging of the two yamls so we just override what we need from default_config.yaml

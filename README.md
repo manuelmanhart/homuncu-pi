@@ -262,9 +262,23 @@ Motion detection and periodic captures are planned for a future release.
 ## Changelog
 
 **1.1.0 - WIP**
-* Refactored `LoggingService` to change loglevel via config file
+* [BREAKING] improved naming from pin to gpioPin (in config)
+* [BREAKING] improved naming from pullUpOrDown to pullDirection (in config)
+* [BREAKING] refactored config service so it will load default_config.yaml and just overrides with the changes in config.yaml instead of replacing completely
+* [BREAKING] set services to 'active: False' in default_config.yaml
+* [BREAKING] refactoring service injection
+* [BREAKING] renamed "ipaddress" to "ip" in json of mqtt message
+* Refactored `LoggingService` to change loglevel via config file (so it can be changed on the fly)
 * Refactored service lookup to a centralized registry
 * Renamed project from `RaspiController` to `Homuncu PI`
+* added `GitRepoService`
+* implemented `CameraService`
+* added autoupdate feature to `UpdateService`
+* added `service.sh help` and added possibility to filter logs
+* added ascii art logo :)
+* changed dev version appendix (from -wip to -dev)
+* bugfixes, refactorings, removed old code
+* improved documentation, logging
 
 **1.0.0**
 * Switched to [Semantic Versioning 2.0.0](https://semver.org/)

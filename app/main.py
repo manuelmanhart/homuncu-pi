@@ -8,6 +8,7 @@ import importlib
 import importlib.util
 import inspect
 import os
+import signal
 
 from app.services.abstract_modular_base_service import AbstractModularBaseService
 from app.services.abstract_sensor_service import AbstractSensorService

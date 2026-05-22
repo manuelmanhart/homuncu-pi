@@ -37,10 +37,10 @@ class AbstractSensorService(AbstractModularBaseService):
         self.lastPublishTime = None
         # Hintergrundthread starten
         self.thread = threading.Thread(target=self.pollSensorInThread, daemon=True)
+        super().onReady()
         self.getLoggingService().debug(self.name, f"active: {self.active}")
         if (self.active):
             self.activate()
-        super().onReady()
 
     def getState(self):
         if (not self.active):
@@ -69,7 +69,7 @@ class AbstractSensorService(AbstractModularBaseService):
                 self.getLoggingService().debug(self.name, f"publishing newState: {newState}")
                 self.publishState(newState)
         except Exception as e:
-            self.getLoggingService().debug(self.name, f"Fehler im Poll-Loop: {e}")
+            self.getLoggingService().error(self.name, f"Fehler im Poll-Loop: {e}")
 
     def publishIntervalExceeded(self) -> bool:
         if (self.publishInterval > 0):

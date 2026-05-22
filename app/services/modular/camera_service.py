@@ -5,7 +5,6 @@ import subprocess
 import json
 import time
 
-
 class CameraService(AbstractModularBaseService):
     def __init__(self, registry):
         super().__init__("camera", registry)

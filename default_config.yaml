@@ -41,6 +41,11 @@ services:
         mqttTopic: "pir"
   camera:
     active: False
+    resolution: [1920, 1080]
+    quality: 85
+    storagePath: "/tmp/camera"
+    mqttTopic: "camera"
+    mqttFlags: "ADD_BASE_TOPIC,ADD_HOSTNAME,ADD_TIMESTAMP"
   healthcheck:
     active: False
   update:

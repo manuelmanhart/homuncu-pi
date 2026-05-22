@@ -185,6 +185,78 @@ This is written for DHT22, but you can use DHT11 or AM2302 as well.
 
 Also see [understand the two potentiometers on a PIR sensor][pir-two-pot] or [connect a PIR sensor to the raspberry pi (German)][pir-two-pot-de]
 
+### Camera
+
+The camera service lets you take photos on demand via MQTT. It uses `libcamera-still` (modern Raspberry Pi camera stack) and stores images to a configurable path.
+
+#### Prerequisites
+
+- A Raspberry Pi Camera Module (or compatible) connected via CSI
+- `libcamera` tools installed on the Raspberry Pi:
+  ```sh
+  sudo apt install libcamera-apps
+  ```
+- Verify the camera works:
+  ```sh
+  libcamera-still -o test.jpg --nopreview
+  ```
+
+#### Configuration
+
+```yaml
+camera:
+  active: True
+  resolution: [1920, 1080]
+  quality: 85
+  storagePath: "/tmp/camera"
+  mqttTopic: "camera"
+  mqttFlags: "ADD_BASE_TOPIC,ADD_HOSTNAME,ADD_TIMESTAMP"
+```
+
+| Key | Default | Description |
+|-----|---------|-------------|
+| `resolution` | `[1920, 1080]` | Image width and height in pixels |
+| `quality` | `85` | JPEG quality (0–100) |
+| `storagePath` | `"/tmp/camera"` | Directory where images are saved (use `/tmp` for read-only mode) |
+| `mqttTopic` | `"camera"` | MQTT topic for publishing responses |
+| `mqttFlags` | `"ADD_BASE_TOPIC,ADD_HOSTNAME,ADD_TIMESTAMP"` | MQTT topic/payload flags |
+
+#### Usage via MQTT
+
+Send a message to the configured input topic (e.g. `home/raspi`) to trigger a capture:
+
+```json
+{
+  "service": "camera",
+  "action": "capture"
+}
+```
+
+The service responds on the configured MQTT topic (e.g. `home/{hostname}/camera`):
+
+```json
+{
+  "state": {
+    "action": "capture",
+    "success": true,
+    "path": "/tmp/camera/capture_1717084800.jpg"
+  },
+  "timestamp": "2026-05-22T12:00:00"
+}
+```
+
+On failure the response contains `"success": false` and an `"error"` field with details.
+
+#### Retrieving Images
+
+The image is stored locally at the path returned in the MQTT response. To view it remotely you can:
+
+- **Mount the directory** via NFS / SMB on your network
+- **Serve it** with a lightweight HTTP server (e.g. `python3 -m http.server 8080` in the storage path)
+- **Copy it** via `scp` or `rsync`
+
+Motion detection and periodic captures are planned for a future release.
+
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 ## Changelog
@@ -230,7 +302,7 @@ Also see [understand the two potentiometers on a PIR sensor][pir-two-pot] or [co
 ## Roadmap
 
 - [ ] Create a service for sending logging via MQTT, like `$baseOutTopic/$hostname/logging`
-- [ ] Implement CameraService for communication with the PI camera
+- [x] Implement CameraService for communication with the PI camera
 - [ ] Implement ReadonlyService for reading / changing the readonly state
 - [ ] Add a feature for playing Audiobooks via RFID Cards / Tags (similar to the popular Audioboxes for kids)
 - [ ] Add voice commands (via external open source projects?)

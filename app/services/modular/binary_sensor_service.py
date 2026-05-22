@@ -8,7 +8,7 @@ from app.services.abstract_sensor_service import AbstractSensorService
 #   sensors: list of sensor definitions, each with:
 #       id (str) – sensor identifier.
 #       pin (int) – GPIO pin number.
-#       pullUpOrDown (str) – "up" (default) or "down" for pull resistor.
+#       pullDirection (str) – "up" (default) or "down" for pull resistor.
 #       labelHigh / labelLow (str) – human readable labels.
 #       mqttTopic (str) – optional MQTT topic for this sensor (defaults to "binarySensor/<id>").
 # MQTT: Publishes each sensor change using getMqttService().sendMessage() with flags ADD_BASE_TOPIC|ADD_HOSTNAME|ADD_TIMESTAMP.
@@ -28,9 +28,9 @@ class BinarySensorService(AbstractSensorService):
             raise Exception("Could not connect to pigpiod")
 
         for s in config.get("sensors", []):
-            pin = int(s.get("pin"))
+            pin = int(s.get("gpioPin"))
             name = s.get("id")
-            pull = pigpio.PUD_UP if s.get("pullUpOrDown", "up") == "up" else pigpio.PUD_DOWN
+            pull = pigpio.PUD_UP if s.get("pullDirection", "up") == "up" else pigpio.PUD_DOWN
             sensor = {
                 "id": name,
                 "pin": pin,

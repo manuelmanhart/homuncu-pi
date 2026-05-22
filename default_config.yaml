@@ -27,15 +27,15 @@ services:
     active: False
     sensors:
       - id: "reed"
-        pin: 21
-        pull: "up"
+        gpioPin: 21
+        pullDirection: "up"
         labelHigh: "Open"
         labelLow: "Closed"
         mqttTopic: "reed"
 
       - id: "pir"
-        pin: 16
-        pull: "down"
+        gpioPin: 23
+        pullDirection: "down"
         labelHigh: "Motion"
         labelLow: "No Motion"
         mqttTopic: "pir"

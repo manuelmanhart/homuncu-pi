@@ -12,7 +12,7 @@ services:
     inTopic: home/raspi
   temperature:
     active: False
-    pin: 4
+    gpioPin: 4
     sensorType: "DHT22"
     pollInterval: 30
     publishInterval: 600

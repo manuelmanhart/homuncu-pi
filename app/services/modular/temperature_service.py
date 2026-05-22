@@ -11,10 +11,10 @@ from app.services.modular.temp_sensor_helper import sensor
 # ------
 # Reads a DHT22 (or configurable) temperature/humidity sensor via pigpio and publishes changes.
 # Config keys (under services.temperature):
-#   pin (int) – GPIO pin number (default 4).
-#   sensorType (str) – sensor model, e.g. "DHT22".
-#   temperatureTolerance / humidityTolerance (float) – thresholds for significant change.
-#   temperatureCorrection, humidityCorrection40, humidityCorrection75 (float) – optional calibration offsets.
+#   gpioPin (int) - GPIO pin number (default 4).
+#   sensorType (str) - sensor model, (default "DHT22") - currently supported "DHT11", "DHT22" and "".
+#   temperatureTolerance / humidityTolerance (float) - thresholds for significant change.
+#   temperatureCorrection, humidityCorrection40, humidityCorrection75 (float) - optional calibration offsets.
 # MQTT: Publishes temperature/humidity readings on the configured `mqttTopic` (default service name) using flags ADD_BASE_TOPIC|ADD_HOSTNAME|ADD_TIMESTAMP.
 class TemperatureService(AbstractSensorService):
     def __init__(self, registry):
@@ -26,11 +26,11 @@ class TemperatureService(AbstractSensorService):
         self.humidityCorrection40 = self.getServiceConfig().get("humidityCorrection40", 0)
         self.humidityCorrection75 = self.getServiceConfig().get("humidityCorrection75", 0)
         self.temperatureCorrection = self.getServiceConfig().get("temperatureCorrection", 0)
-        self.gpioPin = self.getServiceConfig().get("pin", 4)
+        self.gpioPin = self.getServiceConfig().get("gpioPin", 4)
         self.sensor_type = self.getServiceConfig().get("sensorType", "DHT22")
+        self.pi = None
 
         self.ensureConnected()
-        self.restartSensor()
         super().onReady()
 
     def restartSensor(self):
@@ -44,14 +44,17 @@ class TemperatureService(AbstractSensorService):
 
     def ensureConnected(self):
         if self.pi == None or not self.pi.connected:
-            self.getLoggingService().warn(self.name, "pigpio nicht verbunden, reconnect...")
+            self.getLoggingService().warn(self.name, "pigpio not connected, reconnect...")
             try:
                 self.pi.stop()
             except Exception:
                 pass
             self.pi = pigpio.pi()
             if not self.pi.connected:
-                raise RuntimeError("pigpio reconnect fehlgeschlagen")
+                self.getLoggingService().error(self.name, "could not connect to pigpio")
+                self.deactivate()
+                raise RuntimeError("pigpio (re)connect unsuccessful")
+            self.getLoggingService().debug(self.name, "pigpio connected")
             self.sensor = sensor(self.pi, self.gpioPin)
             self.sensor.trigger()
 
@@ -73,7 +76,7 @@ class TemperatureService(AbstractSensorService):
                     f"staleness={self.sensor.staleness():.1f}s"
                 )
                 # -999 explizit abfangen
-                if temperature <= -999 or humidity <= -999 or staleness > 60::
+                if temperature <= -999 or humidity <= -999 or staleness > 60:
                     self.getLoggingService().warn(self.name, f"Ungültige Messung (temp={temperature}, hum={humidity}, staleness={staleness}s) - Sensor wird neu initialisiert")
                     self.restartSensor()
                     return {"error": "Sensor restarted, retry on next cycle"}

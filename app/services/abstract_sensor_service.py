@@ -88,8 +88,6 @@ class AbstractSensorService(AbstractModularBaseService):
         topic = self.getMqttTopic()
         if (self.mqttTopic != None):
             topic = self.mqttTopic
-        # This is not a nice workaround, as 
-        # TODO move the wrapping of the message to a static method instead of mqtt service
         if MqttSendFlags.ADD_TIMESTAMP in flags:
             message = state
         else:

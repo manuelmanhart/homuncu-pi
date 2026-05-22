@@ -45,15 +45,18 @@ services:
     active: False
   update:
     active: True
+    repoUrl: "https://homuncu.manhart.space/dl"
+    type: stable
+    autoupdate: "Off"
   squeezebox:
     active: False
   readonly:
     active: False
   ipaddress:
-    active: True
+    active: False
     mqttFlags: NONE
   git:
-    active: True
+    active: False
     repos:
       - name: "repo1"
         path: "~/test-git-repo1"

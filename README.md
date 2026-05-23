@@ -112,7 +112,31 @@ The features are
 
 ### Configuration File
 
-TODO explain config.yaml logic
+Homuncu PI uses a two-tier configuration system:
+
+- **`default_config.yaml`** – committed to the repository, contains all available options with their defaults.
+- **`config.yaml`** – your local override file (not tracked by git). You only need to set values that differ from the defaults.
+
+On startup, `ConfigService` loads both files and performs a deep merge: keys from `config.yaml` override those in `default_config.yaml`. After merging, environment variables are expanded (`${VAR_NAME}` or `${VAR_NAME:default_value}`).
+
+The config structure has two top-level sections:
+
+```yaml
+global:
+  cacheTTL: 10
+  hostname: ${HOSTNAME}
+
+services:
+  camera:
+    active: True
+    resolution: [1920, 1080]
+  temperature:
+    active: True
+    gpioPin: 4
+```
+
+- **`global`** – global settings like `hostname` and `cacheTTL`.
+- **`services`** – per-service configuration. Each service reads its own section via `self.getServiceConfig()`.
 
 ### Logging
 

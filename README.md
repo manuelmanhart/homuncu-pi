@@ -344,6 +344,7 @@ Motion detection and periodic captures are planned for a future release.
 * added `GitRepoService`
 * implemented `CameraService`
 * added autoupdate feature to `UpdateService`
+* added `ShutdownService` for shutting down safely via button and/or MQTT
 * added `service.sh help` and added possibility to filter logs
 * added ascii art logo :)
 * changed dev version appendix (from -wip to -dev)

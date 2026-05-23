@@ -57,6 +57,12 @@ services:
     active: False
   readonly:
     active: False
+  shutdown:
+    active: False
+    viaMqtt: False
+    viaButton: True
+    gpioPin: 3
+    pullDirection: "up"
   ipaddress:
     active: False
     mqttFlags: NONE

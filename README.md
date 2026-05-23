@@ -106,6 +106,7 @@ The features are
 * IP Address - if your router sometimes changes IP Addresses (via DHCP), you can feed a DNS server (like unbound) always with current name & ip address combinations
 * Led - power LEDs on incoming MQTT messages
 * Readonly mode - so the Raspberry PI is more resilient to power outages / issues
+* Shutdown - Shut down the Raspberry Pi safely via a physical button or MQTT
 * Squeezebox / Musicbox - For Multiroom Audio and as well so everyone can listen to their music easily
 * Temperature And Humidity Sensors - To track the environment of your house / flat
 * (Software) Update Service - So the Raspberry PI always stays up to date as well as Homuncu PI itself
@@ -208,6 +209,51 @@ This is written for DHT22, but you can use DHT11 or AM2302 as well.
 3. Set the potmeters on the PIR sensor accordingly
 
 Also see [understand the two potentiometers on a PIR sensor][pir-two-pot] or [connect a PIR sensor to the raspberry pi (German)][pir-two-pot-de]
+
+### Shutdown
+
+The shutdown service lets you shut down the Raspberry Pi safely — either by pressing a physical button or by sending an MQTT message.
+
+Two mutually non-exclusive modes are available:
+
+| Mode | Config key | Description |
+|------|------------|-------------|
+| **Button** | `viaButton` | Connect a push button between the configured GPIO pin and GND. Pressing it triggers `sudo shutdown now`. |
+| **MQTT** | `viaMqtt` | Send an MQTT message with `action: "shutdown"` to trigger a shutdown remotely. |
+
+#### Configuration
+
+```yaml
+shutdown:
+  active: False
+  viaMqtt: False
+  viaButton: True
+  gpioPin: 3
+  pullDirection: "up"
+```
+
+| Key | Default | Description |
+|-----|---------|-------------|
+| `active` | `False` | Must be `True` for the service to start. |
+| `viaMqtt` | `False` | Enable shutdown via MQTT messages. |
+| `viaButton` | `True` | Enable shutdown via a physical button. |
+| `gpioPin` | `3` | BCM GPIO pin number the button is connected to. |
+| `pullDirection` | `"up"` | Internal pull resistor: `"up"` (button connects to GND) or `"down"` (button connects to 3.3V). |
+
+> **Note on GPIO 3 (default):** This pin has a hardware pull-up on most Raspberry Pi models, so no external resistor is needed when using `pullDirection: "up"`. If you change to a different pin, ensure the pull direction matches your wiring.
+
+#### MQTT Usage
+
+Send a message to the configured input topic (e.g. `home/raspi`) to trigger a shutdown:
+
+```json
+{
+  "service": "shutdown",
+  "action": "shutdown"
+}
+```
+
+The service will execute `sudo shutdown now` and the Raspberry Pi will power off.
 
 ### Camera
 

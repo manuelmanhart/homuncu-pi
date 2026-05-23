@@ -6,6 +6,7 @@ from .ip_address_service import IpAddressService
 #from .led_service import LedService
 from .logging_service import LoggingService
 from .readonly_service import ReadOnlyService
+from .shutdown_service import ShutdownService
 from .squeezebox_service import SqueezeboxService
 from .temperature_service import TemperatureService
 from .update_service import UpdateService

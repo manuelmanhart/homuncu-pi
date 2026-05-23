@@ -1,7 +1,6 @@
 from app.services.abstract_sensor_service import AbstractSensorService
 import socket
 
-# TODO check
 # IpAddressService
 # ------
 # Determines the local IP address used to reach a configurable remote host/port.

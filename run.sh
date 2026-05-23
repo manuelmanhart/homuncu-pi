@@ -37,5 +37,4 @@ fi
 
 # Starting python script
 echo "[INFO] Starting Homuncu PI v${VERSION}..."
-# TODO start service without uvicorn
 python3 -m app.main

@@ -17,8 +17,7 @@ class SqueezeboxService(AbstractModularBaseService):
             capture_output=True,
             text=True
         )
-        self.active = (result.returncode == 0 and result.stdout.strip() == "active")
-        return self.active
+        return (result.returncode == 0 and result.stdout.strip() == "active")
 
     def activate(self) -> bool:
         result = subprocess.run(

@@ -63,7 +63,7 @@ class UpdateService(AbstractSensorService):
 
     def _applySystemUpdates(self):
         try:
-            subprocess.run(["apt", "upgrade", "-y"], check=False)
+            subprocess.run(["sudo", "apt", "upgrade", "-y"], check=False)
             self.getLoggingService().info(self.name, "system updates applied")
         except Exception as e:
             self.getLoggingService().error(self.name, f"system update failed: {e}")
@@ -106,10 +106,18 @@ class UpdateService(AbstractSensorService):
                     f.write(resp.content)
                 with tarfile.open(archive_path, "r:gz") as tar:
                     tar.extractall(path=tmp)
-                for item in os.listdir(tmp):
+
+                extracted = os.listdir(tmp)
+                content_dir = tmp
+                if len(extracted) == 1 and extracted[0] != archive_name:
+                    nested = os.path.join(tmp, extracted[0])
+                    if os.path.isdir(nested):
+                        content_dir = nested
+
+                for item in os.listdir(content_dir):
                     if item == archive_name or item in ("config.yaml", "venv"):
                         continue
-                    src = os.path.join(tmp, item)
+                    src = os.path.join(content_dir, item)
                     dst = os.path.join(project_root, item)
                     if os.path.exists(dst):
                         if os.path.isdir(dst):

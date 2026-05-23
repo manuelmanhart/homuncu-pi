@@ -38,5 +38,5 @@ class GitRepoService(AbstractModularBaseService):
                         capture_output=True,
                         text=True
                     )
-                    self.getLoggingService().info(f"result: {result}")
+                    self.getLoggingService().info(self.name, f"result: {result}")
                     return

@@ -21,13 +21,9 @@ class HealthcheckService(AbstractSensorService):
         """Liest den aktuellen Healthcheck-Status aus der Datei"""
         if self.currentHealthcheckPath.exists():
             self.getLoggingService().debug(self.name, f" reading {self.currentHealthcheckPath}")
-            self.logger.info(self.name, f" reading {self.currentHealthcheckPath}")
             try:
-                if self.currentHealthcheckPath.exists():
-                    with open(self.currentHealthcheckPath, "r") as f:
-                        return json.load(f)
-                else:
-                    return {"status": "unknown", "error": f"Healthcheck '{self.currentHealthcheckPath}' file not found"}
+                with open(self.currentHealthcheckPath, "r") as f:
+                    return json.load(f)
             except json.JSONDecodeError:
                 return {"status": "error", "error": "Invalid JSON format in healthcheck file"}
             except Exception as e:

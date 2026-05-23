@@ -46,6 +46,9 @@ class BinarySensorService(AbstractSensorService):
             self.mqttTopic = None
         super().onReady()
 
+    def handleShutdownService(self):
+        self.pi.stop()
+
     def readState(self):
         """
         Returns the state of ALL sensors as dict.

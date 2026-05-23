@@ -102,9 +102,15 @@ class TemperatureService(AbstractSensorService):
 
     def correctHumidity(self, humidity):
         if self.humidityCorrection40 != 0 and self.humidityCorrection75 != 0:
-            return (humidity - self.humidityCorrection40) * (75 - self.humidityCorrection40) / (humidityCorrection75 - self.humidityCorrection40) + 40
+            return (humidity - self.humidityCorrection40) * (75 - self.humidityCorrection40) / (self.humidityCorrection75 - self.humidityCorrection40) + 40
         else:
             return humidity
+
+    def handleShutdownService(self):
+        if self.sensor is not None:
+            self.sensor.cancel()
+        if self.pi is not None:
+            self.pi.stop()
 
     def hasSignificantChange(self, oldState, newState) -> bool:
         if (newState["humidity"] > 0):
@@ -136,12 +142,12 @@ class TemperatureService(AbstractSensorService):
 
     def install(self) -> bool:
         result = subprocess.run(
-            ["apt", "update"],
+            ["sudo", "apt", "update"],
             capture_output=True,
             text=True
         )
         result = subprocess.run(
-            ["apt", "install", "-y", "pigpio"],
+            ["sudo", "apt", "install", "-y", "pigpio"],
             capture_output=True,
             text=True
         )

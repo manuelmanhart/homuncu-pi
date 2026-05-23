@@ -1,4 +1,4 @@
-from app.services.abstract_sensor_service import AbstractModularBaseService
+from app.services.abstract_modular_base_service import AbstractModularBaseService
 
 # LoggingService
 # ------

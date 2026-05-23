@@ -44,7 +44,7 @@ class ConfigService(AbstractBaseService):
             self.getLoggingService().debug(self.name, f" loaded {path}: {raw}")
             return raw or {}
 
-     def readState(self):
+    def readState(self):
         base_dir = os.path.join(os.path.dirname(__file__), '..', '..', '..')
         defaultConfigFile = os.path.join(base_dir, "default_config.yaml")
         defaults = self._load_yaml(defaultConfigFile) 

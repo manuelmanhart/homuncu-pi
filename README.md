@@ -47,6 +47,7 @@
     </li>
     <li><a href="#usage">Usage</a></li>
     <li><a href="#roadmap">Roadmap</a></li>
+    <li><a href="#extending--writing-your-own-modular-service">Extending</a></li>
     <li><a href="#contributing">Contributing</a></li>
     <li><a href="#license">License</a></li>
     <li><a href="#contact">Contact</a></li>
@@ -329,6 +330,154 @@ Motion detection and periodic captures are planned for a future release.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
+<!-- EXTENDING -->
+## Extending — Writing your own Modular Service
+
+Homuncu PI is designed to be easily extensible. You can add your own modular service without modifying the core — just drop a file into `app/services/modular/`.
+
+### Architecture Overview
+
+Every service inherits from one of these base classes:
+
+```
+AbstractBaseService                  ← caching, state, logging
+  └── AbstractConfigurableService    ← reads its own config section
+        └── AbstractModularBaseService  ← active flag, MQTT access
+              └── AbstractSensorService ← periodic polling, MQTT publishing
+```
+
+- **`AbstractModularBaseService`** — the simplest starting point for services that react to events or expose state on demand (e.g. `SqueezeboxService`, `ReadOnlyService`).
+- **`AbstractSensorService`** — for services that periodically read a sensor and publish the value via MQTT (e.g. `TemperatureService`, `HealthcheckService`).
+
+### Service Discovery
+
+On startup `main.py` scans `app/services/modular/` for files ending with `*service.py`. Each file is imported and inspected for classes that inherit from `AbstractModularBaseService` (or a subclass of it). Matching classes are instantiated and registered in the `ServiceRegistry`.
+
+**Naming rules:**
+- File name must end with `_service.py` (e.g. `my_sensor_service.py`).
+- The file is excluded if it starts with `__` or `abstract`.
+- The class name is arbitrary, but by convention it matches the file name in PascalCase (e.g. `MySensorService` in `my_sensor_service.py`).
+
+### Quick Start — Simple Example
+
+Let's create a service that pings a host and publishes whether it is reachable.
+
+**1. Create the config default** (optional, but recommended)
+
+Add a section in `default_config.yaml`:
+
+```yaml
+  ping:
+    active: False
+    host: "192.168.1.1"
+    count: 1
+```
+
+**2. Create the service file**
+
+`app/services/modular/ping_service.py`:
+
+```python
+import subprocess
+from app.services.abstract_sensor_service import AbstractSensorService
+
+class PingService(AbstractSensorService):
+    def __init__(self, registry):
+        super().__init__("ping", registry)
+
+    def onReady(self):
+        self.host = self.getServiceConfig().get("host", "192.168.1.1")
+        self.count = self.getServiceConfig().get("count", 1)
+        super().onReady()
+
+    def readState(self):
+        try:
+            result = subprocess.run(
+                ["ping", "-c", str(self.count), self.host],
+                capture_output=True, text=True, timeout=10
+            )
+            return {
+                "host": self.host,
+                "reachable": result.returncode == 0,
+                "output": result.stdout
+            }
+        except Exception as e:
+            return {"host": self.host, "reachable": False, "error": str(e)}
+
+    def hasSignificantChange(self, oldState, newState):
+        return oldState.get("reachable") != newState.get("reachable")
+```
+
+**3. Start Homuncu PI**
+
+The service is discovered automatically. Set `ping.active: True` in `config.yaml` and it will start polling.
+
+### Writing a simple (non-sensor) Service
+
+If you don't need periodic MQTT publishing, inherit from `AbstractModularBaseService` instead. Example — `SqueezeboxService` (`app/services/modular/squeezebox_service.py`):
+
+```python
+from app.services.abstract_modular_base_service import AbstractModularBaseService
+import subprocess
+
+class SqueezeboxService(AbstractModularBaseService):
+    def __init__(self, registry):
+        super().__init__("squeezebox", registry)
+
+    def readState(self) -> bool:
+        # systemctl is-enabled returns 0 when the service exists
+        result = subprocess.run(
+            ["systemctl", "is-enabled", "squeezelite"],
+            capture_output=True, text=True
+        )
+        self.installed = (result.returncode == 0)
+        result = subprocess.run(
+            ["systemctl", "is-active", "squeezelite"],
+            capture_output=True, text=True
+        )
+        return (result.returncode == 0 and result.stdout.strip() == "active")
+```
+
+### Available Hooks and Helpers
+
+| Method | When it's called | Purpose |
+|--------|-----------------|---------|
+| `onReady()` | After all services are discovered, before the main loop | Read config, start threads, open connections |
+| `readState()` | Every `cacheTTL` seconds (default: 10) | Return the current state of the service |
+| `getState()` | Usually called by the main loop, respects caching | Calls `readState()` only if the cache is stale |
+| `activate() / deactivate()` | On activation / deactivation | Start / stop resources (threads, connections) |
+| `handleShutdownService()` | On SIGTERM / SIGINT | Clean up connections, close files |
+| `onMqttMessage(message)` | When an MQTT message arrives on the input topic | React to incoming commands |
+
+### Accessing other Services
+
+Use `self.getService(SomeService)` or `self.getServiceByName("servicename")`:
+
+```python
+mqtt = self.getMqttService()
+mqtt.sendMessage("mytopic", "hello", MqttSendFlags.ADD_BASE_TOPIC)
+```
+
+Common services you can access:
+| Service | How to get it |
+|---------|--------------|
+| `MqttService` | `self.getMqttService()` (inherited) |
+| `StdoutLoggingService` | `self.getLoggingService()` (inherited) |
+| `ConfigService` | `self._getConfigService()` (inherited) |
+| Any other service | `self.getServiceByName("temperature")` |
+
+### Local vs. Distributed Services (Future Vision)
+
+Currently all services live inside `app/services/modular/`. The long-term goal is to allow downloading services from external sources at runtime. The modular service interface is already designed for this:
+
+- Each service has a unique `name` (the first constructor argument).
+- Each service reads its config from `services.<name>` in `config.yaml`.
+- Discovery is file-based and stateless.
+
+In the future, instead of scanning a local directory, the registry will download service modules from configured URLs and load them dynamically. The programming model stays the same — this guide is the first step.
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
 ## Changelog
 
 **1.2.0-dev**
@@ -393,15 +542,16 @@ Motion detection and periodic captures are planned for a future release.
 
 - [x] Create an easy to use setup wizard
 - [x] Implement CameraService for communication with the PI camera
+- [x] Merge the configs read from `default_config.yaml` and `config.yaml` so one only needs to override the changes instead of copying all
+- [x] Read incoming mqtt messages and forward them to the correct service
+- [x] Write a guide on how to extend by creating own services
+- [ ] Implement automatic installation for squeezelite
 - [ ] Create a service for sending logging via MQTT, like `$baseOutTopic/$hostname/logging`
 - [ ] Implement ReadonlyService for reading / changing the readonly state
 - [ ] Add a feature for playing Audiobooks via RFID Cards / Tags (similar to the popular Audioboxes for kids)
 - [ ] Add voice commands (via external open source projects?)
 - [ ] Get the config via MQTT messages and save the configuration into `config.yaml` file
-- [ ] Merge the configs read from `default_config.yaml` and `config.yaml` so one only needs to override the changes instead of copying all
 - [ ] Refactor the bash scripts
-- [ ] Write a guide on how to extend by creating own services
-- [ ] Read incoming mqtt messages and forward them to the correct service
 - [ ] Look into security hardening the whole homuncu-pi service
 
 See the [open issues](https://code.manhart.space/manuelmanhartit/homuncu-pi/issues) for a full list of proposed features (and known issues).

@@ -331,7 +331,12 @@ Motion detection and periodic captures are planned for a future release.
 
 ## Changelog
 
-**1.1.0 - WIP**
+**1.2.0-dev**
+* switched from pigpiod (deprecated on trixie) to lgpio & gpiozero (modern)
+* bugfix for non existing config file
+* code improvement for updates
+
+**1.1.0**
 * [BREAKING] improved naming from pin to gpioPin (in config)
 * [BREAKING] improved naming from pullUpOrDown to pullDirection (in config)
 * [BREAKING] refactored config service so it will load default_config.yaml and just overrides with the changes in config.yaml instead of replacing completely
@@ -386,17 +391,18 @@ Motion detection and periodic captures are planned for a future release.
 
 ## Roadmap
 
-- [ ] Create a service for sending logging via MQTT, like `$baseOutTopic/$hostname/logging`
+- [x] Create an easy to use setup wizard
 - [x] Implement CameraService for communication with the PI camera
+- [ ] Create a service for sending logging via MQTT, like `$baseOutTopic/$hostname/logging`
 - [ ] Implement ReadonlyService for reading / changing the readonly state
 - [ ] Add a feature for playing Audiobooks via RFID Cards / Tags (similar to the popular Audioboxes for kids)
 - [ ] Add voice commands (via external open source projects?)
 - [ ] Get the config via MQTT messages and save the configuration into `config.yaml` file
 - [ ] Merge the configs read from `default_config.yaml` and `config.yaml` so one only needs to override the changes instead of copying all
 - [ ] Refactor the bash scripts
-- [ ] Create an easy to use setup wizard
 - [ ] Write a guide on how to extend by creating own services
 - [ ] Read incoming mqtt messages and forward them to the correct service
+- [ ] Look into security hardening the whole homuncu-pi service
 
 See the [open issues](https://code.manhart.space/manuelmanhartit/homuncu-pi/issues) for a full list of proposed features (and known issues).
 

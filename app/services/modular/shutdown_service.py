@@ -1,5 +1,5 @@
 import subprocess
-import pigpio
+from gpiozero import Button
 from app.services.abstract_sensor_service import AbstractSensorService
 
 
@@ -7,6 +7,7 @@ class ShutdownService(AbstractSensorService):
     def __init__(self, registry):
         super().__init__("shutdown", registry)
         self._shuttingDown = False
+        self._button = None
 
     def onReady(self):
         config = self.getServiceConfig()
@@ -17,24 +18,22 @@ class ShutdownService(AbstractSensorService):
         self.getLoggingService().debug(self.name, f"serviceConfig: {config}")
 
         if self.viaButton:
-            self.pi = pigpio.pi()
-            if not self.pi.connected:
-                raise Exception("Could not connect to pigpiod")
-            pull = pigpio.PUD_UP if config.get("pullDirection", "up") == "up" else pigpio.PUD_DOWN
-            self.pi.set_mode(self.pin, pigpio.INPUT)
-            self.pi.set_pull_up_down(self.pin, pull)
+            pull_up = config.get("pullDirection", "up") == "up"
+            self._button = Button(self.pin, pull_up=pull_up)
+            self._button.when_pressed = self._on_button_pressed
 
         super().onReady()
 
+    def _on_button_pressed(self):
+        if not self._shuttingDown:
+            self._shuttingDown = True
+            self.shutdown()
+
     def handleShutdownService(self):
-        if self.viaButton:
-            self.pi.stop()
+        if self._button is not None:
+            self._button.close()
 
     def readState(self):
-        if self.viaButton and not self._shuttingDown:
-            if self.pi.read(self.pin) == 0:
-                self._shuttingDown = True
-                self.shutdown()
         return {
             "active": self.active,
             "viaButton": self.viaButton,

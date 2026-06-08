@@ -1,4 +1,4 @@
 paho-mqtt
 requests
-pigpio
+gpiozero
 PyYAML

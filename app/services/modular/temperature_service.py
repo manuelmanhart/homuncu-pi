@@ -1,10 +1,5 @@
-import pigpio
-import sys
-import os
-import subprocess
 import time
 from app.services.abstract_sensor_service import AbstractSensorService
-sys.path.append(os.path.dirname(__file__)) 
 from app.services.modular.temp_sensor_helper import sensor
 
 # TemperatureService
@@ -28,142 +23,72 @@ class TemperatureService(AbstractSensorService):
         self.temperatureCorrection = self.getServiceConfig().get("temperatureCorrection", 0)
         self.gpioPin = self.getServiceConfig().get("gpioPin", 4)
         self.sensor_type = self.getServiceConfig().get("sensorType", "DHT22")
-        self.pi = None
-
-        self.ensureConnected()
+        self.sensor = sensor(self.gpioPin, self.sensor_type)
         super().onReady()
 
     def restartSensor(self):
-        if (self.sensor != None):
+        if self.sensor is not None:
             try:
                 self.sensor.cancel()
             except Exception:
                 pass
-            time.sleep(3)  # DHT22 braucht Zeit zum Erholen
-        self.sensor = sensor(self.pi, self.gpioPin)
-
-    def ensureConnected(self):
-        if self.pi == None or not self.pi.connected:
-            self.getLoggingService().warn(self.name, "pigpio not connected, reconnect...")
-            try:
-                self.pi.stop()
-            except Exception:
-                pass
-            self.pi = pigpio.pi()
-            if not self.pi.connected:
-                self.getLoggingService().error(self.name, "could not connect to pigpio")
-                self.deactivate()
-                raise RuntimeError("pigpio (re)connect unsuccessful")
-            self.getLoggingService().debug(self.name, "pigpio connected")
-            self.sensor = sensor(self.pi, self.gpioPin)
-            self.sensor.trigger()
+            time.sleep(3)
+        self.sensor = sensor(self.gpioPin, self.sensor_type)
 
     def readState(self):
-        self.ensureConnected()
         try:
-            self.getLoggingService().debug(self.name, f" reading sensor: {self.sensor}")
-            if (self.sensor != None):
+            if self.sensor is not None:
                 self.sensor.trigger()
-                time.sleep(2.5)  # kurz warten auf Messung
+                time.sleep(0.2)
                 temperature = self.sensor.temperature()
                 humidity = self.sensor.humidity()
                 staleness = self.sensor.staleness()
-                self.getLoggingService().debug(
-                    self.name,
-                    f"Sensor-Stats: bad_CS={self.sensor.bad_checksum()}, "
-                    f"bad_SM={self.sensor.short_message()}, "
-                    f"bad_MM={self.sensor.missing_message()}, "
-                    f"staleness={self.sensor.staleness():.1f}s"
-                )
-                # -999 explizit abfangen
+
                 if temperature <= -999 or humidity <= -999 or staleness > 60:
-                    self.getLoggingService().warn(self.name, f"Ungültige Messung (temp={temperature}, hum={humidity}, staleness={staleness}s) - Sensor wird neu initialisiert")
+                    self.getLoggingService().warn(self.name, f"Invalid reading (temp={temperature}, hum={humidity}, staleness={staleness}s) - restarting sensor")
                     self.restartSensor()
                     return {"error": "Sensor restarted, retry on next cycle"}
 
-                self.getLoggingService().debug(self.name, f" read temp {temperature} read hum {humidity}")
-                self.getLoggingService().debug(self.name, f" corrected temp {self.correctTemperature(temperature)} corrected hum {self.correctHumidity(humidity)}")
-                self.getLoggingService().debug(self.name, f" rounded temp {round(self.correctTemperature(temperature), 1)} rounded hum {round(self.correctHumidity(humidity), 1)}")
                 return {
                     "temperature": round(self.correctTemperature(temperature), 1),
                     "humidity": round(self.correctHumidity(humidity), 1),
                 }
             else:
-                self.getLoggingService().warn(self.name, f" sensor not ready yet")
-                return { "error": "Sensor not ready yet" }
+                return {"error": "Sensor not ready yet"}
         except Exception as e:
             return {"error": str(e)}
 
     def correctTemperature(self, temperature):
         if self.temperatureCorrection != 0:
-            return (temperature + self.temperatureCorrection)
-        else:
-            return temperature
+            return temperature + self.temperatureCorrection
+        return temperature
 
     def correctHumidity(self, humidity):
         if self.humidityCorrection40 != 0 and self.humidityCorrection75 != 0:
             return (humidity - self.humidityCorrection40) * (75 - self.humidityCorrection40) / (self.humidityCorrection75 - self.humidityCorrection40) + 40
-        else:
-            return humidity
+        return humidity
 
     def handleShutdownService(self):
         if self.sensor is not None:
             self.sensor.cancel()
-        if self.pi is not None:
-            self.pi.stop()
 
     def hasSignificantChange(self, oldState, newState) -> bool:
-        if (newState["humidity"] > 0):
-            tempOverThreshold = self.isOverThreshold(oldState["temperature"], newState["temperature"], self.temperatureTolerance)
-            humOverThreshold = self.isOverThreshold(oldState["humidity"], newState["humidity"], self.humidityTolerance)
-            return tempOverThreshold or humOverThreshold
-        else:
-            return False
+        if newState.get("humidity", 0) > 0:
+            tempOver = self.isOverThreshold(oldState["temperature"], newState["temperature"], self.temperatureTolerance)
+            humOver = self.isOverThreshold(oldState["humidity"], newState["humidity"], self.humidityTolerance)
+            return tempOver or humOver
+        return False
 
-    def isOverThreshold(self, numberA, numberB, tolerance):
-        result = abs(numberA - numberB) > tolerance
-        self.getLoggingService().debug(self.name, f" isOverThreshold({numberA}, {numberB}, {tolerance}) => {result}")
-        return result
+    def isOverThreshold(self, a, b, tolerance):
+        return abs(a - b) > tolerance
 
     def isServiceActive(self) -> bool:
-        result = subprocess.run(
-            ["systemctl", "is-enabled", "pigpiod"],
-            capture_output=True,
-            text=True
-        )
-        self.installed = (result.returncode == 0)
-        result = subprocess.run(
-            ["systemctl", "is-active", "pigpiod"],
-            capture_output=True,
-            text=True
-        )
-        self.active = self.active and (result.returncode == 0 and result.stdout.strip() == "active")
         return self.active
 
     def install(self) -> bool:
-        result = subprocess.run(
-            ["sudo", "apt", "update"],
-            capture_output=True,
-            text=True
-        )
-        result = subprocess.run(
-            ["sudo", "apt", "install", "-y", "pigpio"],
-            capture_output=True,
-            text=True
-        )
-        result = subprocess.run(
-            ["systemctl", "enable", "pigpiod"],
-            capture_output=True,
-            text=True
-        )
-        result = subprocess.run(
-            ["systemctl", "start", "pigpiod"],
-            capture_output=True,
-            text=True
-        )
-        return (result.returncode == 0)
+        return True
 
     def uninstall(self) -> bool:
-        self.sensor.cancel()
-        self.pi.stop()
+        if self.sensor is not None:
+            self.sensor.cancel()
         return True

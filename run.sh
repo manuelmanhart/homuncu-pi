@@ -14,10 +14,16 @@ if [ "$1" == "-u" ]; then
     INSTALL_REQUIREMENTS=1
 fi
 
+# Ensure system GPIO library (lgpio) is available (check with system Python)
+if ! python3 -c "import lgpio" 2>/dev/null; then
+    echo "[INFO] Installing system package python3-lgpio..."
+    sudo apt install -y python3-lgpio
+fi
+
 # Create virtual environment (venv) if not exists
 if [ ! -d "$VENV_DIR" ]; then
     echo "[INFO] Creating virtual python environment..."
-    python3 -m venv "$VENV_DIR"
+    python3 -m venv --system-site-packages "$VENV_DIR"
     INSTALL_REQUIREMENTS=1
 fi
 

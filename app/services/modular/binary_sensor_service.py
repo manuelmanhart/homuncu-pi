@@ -1,5 +1,5 @@
-import pigpio
 from app.services.abstract_sensor_service import AbstractSensorService
+from gpiozero import DigitalInputDevice
 
 # BinarySensorService
 # ------
@@ -14,7 +14,7 @@ from app.services.abstract_sensor_service import AbstractSensorService
 # MQTT: Publishes each sensor change using getMqttService().sendMessage() with flags ADD_BASE_TOPIC|ADD_HOSTNAME|ADD_TIMESTAMP.
 class BinarySensorService(AbstractSensorService):
     def __init__(self, registry):
-        self.sensors = []  
+        self.sensors = []
         super().__init__("binarySensor", registry)
 
     def onReady(self):
@@ -23,31 +23,26 @@ class BinarySensorService(AbstractSensorService):
 
         self.getLoggingService().debug(self.name, f" serviceConfig: {config}")
 
-        self.pi = pigpio.pi()
-        if not self.pi.connected:
-            raise Exception("Could not connect to pigpiod")
-
         for s in config.get("sensors", []):
             pin = int(s.get("gpioPin"))
             name = s.get("id")
-            pull = pigpio.PUD_UP if s.get("pullDirection", "up") == "up" else pigpio.PUD_DOWN
+            pull_up = s.get("pullDirection", "up") == "up"
+            device = DigitalInputDevice(pin, pull_up=pull_up)
             sensor = {
                 "id": name,
-                "pin": pin,
-                "pull": pull,
+                "device": device,
                 "labelHigh": s.get("labelHigh", "High"),
                 "labelLow": s.get("labelLow", "Low"),
                 "mqttTopic": s.get("mqttTopic", f"{self.name}/{name}"),
-                "lastState": None
+                "lastState": None,
             }
-            self.pi.set_mode(pin, pigpio.INPUT)
-            self.pi.set_pull_up_down(pin, pull)
             self.sensors.append(sensor)
             self.mqttTopic = None
         super().onReady()
 
     def handleShutdownService(self):
-        self.pi.stop()
+        for s in self.sensors:
+            s["device"].close()
 
     def readState(self):
         """
@@ -55,35 +50,27 @@ class BinarySensorService(AbstractSensorService):
         """
         sensorStates = {}
         if self.sensors:
-            for sensor in self.sensors:
-                pinState = self.pi.read(sensor["pin"])
-                sensorStates[sensor["id"]] = pinState
-
+            for s in self.sensors:
+                sensorStates[s["id"]] = 1 if s["device"].is_active else 0
         return sensorStates
 
     def publishState(self, state):
         """
         Publishes each sensor independently based on change detection and updates the publishedState at the end.
         """
-
-        publishNeccessary = True #self.state = None or self.publishIntervalExceeded()
-        for sensor in self.sensors:
-            singleSensorState = state[sensor["id"]]
-
-            # skip if no change and publish time not exceeded yet
-            if not publishNeccessary and sensor["lastState"] == singleSensorState:
+        publishNeccessary = True
+        for s in self.sensors:
+            singleSensorState = state[s["id"]]
+            if not publishNeccessary and s["lastState"] == singleSensorState:
                 continue
-
             publishState = {
                 "number": singleSensorState,
-                "label": sensor["labelLow"] if singleSensorState == 0 else sensor["labelHigh"]
+                "label": s["labelLow"] if singleSensorState == 0 else s["labelHigh"],
             }
-
+            self.mqttTopic = s["mqttTopic"]
             # Publish via parent logic
-            self.mqttTopic = sensor["mqttTopic"]
             super().publishState(publishState)
-            sensor["lastState"] = singleSensorState
-
+            s["lastState"] = singleSensorState
         self.publishedState = state
 
     def getMqttTopic(self):

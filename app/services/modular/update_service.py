@@ -46,7 +46,7 @@ class UpdateService(AbstractSensorService):
         try:
             self.getLoggingService().info(self.name, "checking system updates")
             output = subprocess.check_output(
-                ["apt", "-s", "upgrade"], stderr=subprocess.STDOUT
+                ["apt", "-s", "full-upgrade"], stderr=subprocess.STDOUT
             ).decode("utf-8")
 
             updates = []
@@ -63,7 +63,7 @@ class UpdateService(AbstractSensorService):
 
     def _applySystemUpdates(self):
         try:
-            subprocess.run(["sudo", "apt", "upgrade", "-y"], check=False)
+            subprocess.run(["sudo", "apt", "full-upgrade", "-y"], check=False)
             self.getLoggingService().info(self.name, "system updates applied")
         except Exception as e:
             self.getLoggingService().error(self.name, f"system update failed: {e}")

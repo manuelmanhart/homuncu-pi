@@ -27,7 +27,7 @@ class AbstractConfigurableService(AbstractBaseService):
             self.getLoggingService().error(self.name, "Cannot access service config yet, must be after init method has been completed!")
             return {}; # TBD do some useful error handling
         else:
-            return self._getConfigService().getScopedConfig("services").get(self.name)
+            return self._getConfigService().getScopedConfig("services").get(self.name) or {}
 
     def getGlobalConfig(self) -> dict:
         return self._getConfigService().getScopedConfig("global")

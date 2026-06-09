@@ -14,6 +14,7 @@ services:
     active: False
     gpioPin: 4
     sensorType: "DHT22"
+    i2cAddr: "0x76"
     pollInterval: 30
     publishInterval: 600
     temperatureTolerance: 0.5
@@ -23,6 +24,12 @@ services:
     temperatureCorrection: 0
     humidityTolerance: 4
     appendHostnameToTopic: True
+  airQuality:
+    active: False
+    i2cAddr: "0x76"
+    pollInterval: 60
+    publishInterval: 600
+    gasTolerance: 10000
   binarySensor:
     active: False
     sensors:

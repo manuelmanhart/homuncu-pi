@@ -2,7 +2,6 @@ import subprocess
 from gpiozero import Button
 from app.services.abstract_sensor_service import AbstractSensorService
 
-
 class ShutdownService(AbstractSensorService):
     def __init__(self, registry):
         super().__init__("shutdown", registry)

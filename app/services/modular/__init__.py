@@ -1,3 +1,4 @@
+from .air_quality_service import AirQualityService
 from .binary_sensor_service import BinarySensorService
 from .camera_service import CameraService
 from .git_repo_service import GitRepoService

@@ -1,6 +1,7 @@
 import time
 from app.services.abstract_sensor_service import AbstractSensorService
-from app.services.modular.temp_sensor_helper import sensor
+from app.services.modular.bme680_sensor_helper import Bme680Sensor as Bme680SensorHelper
+from app.services.modular.temp_sensor_helper import sensor as DhtSensor
 
 # TemperatureService
 # ------
@@ -14,6 +15,7 @@ from app.services.modular.temp_sensor_helper import sensor
 class TemperatureService(AbstractSensorService):
     def __init__(self, registry):
         super().__init__("temperature", registry)
+        self._bme680 = False
 
     def onReady(self):
         self.temperatureTolerance = self.getServiceConfig().get("temperatureTolerance", 0.5)
@@ -23,40 +25,69 @@ class TemperatureService(AbstractSensorService):
         self.temperatureCorrection = self.getServiceConfig().get("temperatureCorrection", 0)
         self.gpioPin = self.getServiceConfig().get("gpioPin", 4)
         self.sensor_type = self.getServiceConfig().get("sensorType", "DHT22")
-        self.sensor = sensor(self.gpioPin, self.sensor_type)
+
+        if self.sensor_type == "BME680":
+            self._bme680 = True
+            i2c_addr = int(self.getServiceConfig().get("i2cAddr", "0x76"), 16)
+            self.bme_sensor = Bme680SensorHelper.get_instance(i2c_addr)
+        else:
+            self.sensor = DhtSensor(self.gpioPin, self.sensor_type)
+
         super().onReady()
 
     def restartSensor(self):
+        if self._bme680:
+            return
         if self.sensor is not None:
             try:
                 self.sensor.cancel()
             except Exception:
                 pass
             time.sleep(3)
-        self.sensor = sensor(self.gpioPin, self.sensor_type)
+        self.sensor = DhtSensor(self.gpioPin, self.sensor_type)
 
     def readState(self):
         try:
-            if self.sensor is not None:
-                self.sensor.trigger()
-                time.sleep(0.2)
-                temperature = self.sensor.temperature()
-                humidity = self.sensor.humidity()
-                staleness = self.sensor.staleness()
-
-                if temperature <= -999 or humidity <= -999 or staleness > 60:
-                    self.getLoggingService().warn(self.name, f"Invalid reading (temp={temperature}, hum={humidity}, staleness={staleness}s) - restarting sensor")
-                    self.restartSensor()
-                    return {"error": "Sensor restarted, retry on next cycle"}
-
-                return {
-                    "temperature": round(self.correctTemperature(temperature), 1),
-                    "humidity": round(self.correctHumidity(humidity), 1),
-                }
-            else:
-                return {"error": "Sensor not ready yet"}
+            if self._bme680:
+                return self._read_bme680()
+            return self._read_dht()
         except Exception as e:
             return {"error": str(e)}
+
+    def _read_bme680(self):
+        if not self.bme_sensor.read():
+            return {"error": "BME680 read failed"}
+        temperature = self.bme_sensor.temperature
+        humidity = self.bme_sensor.humidity
+        pressure = self.bme_sensor.pressure
+        if temperature is None or humidity is None:
+            return {"error": "BME680 returned no data"}
+        result = {
+            "temperature": round(self.correctTemperature(temperature), 1),
+            "humidity": round(self.correctHumidity(humidity), 1),
+            "pressure": round(pressure, 1),
+        }
+        return result
+
+    def _read_dht(self):
+        if self.sensor is not None:
+            self.sensor.trigger()
+            time.sleep(0.2)
+            temperature = self.sensor.temperature()
+            humidity = self.sensor.humidity()
+            staleness = self.sensor.staleness()
+
+            if temperature <= -999 or humidity <= -999 or staleness > 60:
+                self.getLoggingService().warn(self.name, f"Invalid reading (temp={temperature}, hum={humidity}, staleness={staleness}s) - restarting sensor")
+                self.restartSensor()
+                return {"error": "Sensor restarted, retry on next cycle"}
+
+            return {
+                "temperature": round(self.correctTemperature(temperature), 1),
+                "humidity": round(self.correctHumidity(humidity), 1),
+            }
+        else:
+            return {"error": "Sensor not ready yet"}
 
     def correctTemperature(self, temperature):
         if self.temperatureCorrection != 0:
@@ -69,6 +100,8 @@ class TemperatureService(AbstractSensorService):
         return humidity
 
     def handleShutdownService(self):
+        if self._bme680:
+            return
         if self.sensor is not None:
             self.sensor.cancel()
 
@@ -89,6 +122,8 @@ class TemperatureService(AbstractSensorService):
         return True
 
     def uninstall(self) -> bool:
+        if self._bme680:
+            return True
         if self.sensor is not None:
             self.sensor.cancel()
         return True

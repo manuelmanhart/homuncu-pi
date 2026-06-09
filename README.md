@@ -480,7 +480,7 @@ In the future, instead of scanning a local directory, the registry will download
 
 ## Changelog
 
-**1.2.0-dev**
+**1.2.0**
 * switched from pigpiod (deprecated on trixie and can cause sound issues) to lgpio & gpiozero (modern)
 * bugfix for non existing config file
 * code improvement for updates

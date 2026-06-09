@@ -550,7 +550,7 @@ In the future, instead of scanning a local directory, the registry will download
 - [x] Write a guide on how to extend by creating own services
 - [x] Implement automatic installation for squeezelite
 - [ ] Create a service for sending logging via MQTT, like `$baseOutTopic/$hostname/logging`
-- [ ] Implement ReadonlyService for reading / changing the readonly state
+- [x] Implement ReadonlyService for reading / changing the readonly state
 - [ ] Add a feature for playing Audiobooks via RFID Cards / Tags (similar to the popular Audioboxes for kids)
 - [ ] Add voice commands (via external open source projects?)
 - [ ] Get the config via MQTT messages and save the configuration into `config.yaml` file

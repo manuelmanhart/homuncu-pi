@@ -190,11 +190,11 @@ To verify what is sent to the mqtt broker, follow these steps:
     1. To debug all mqtt traffic go into your mosquitto container (`docker exec -ti CONTAINER_NAME sh`)
     2. Then subscribe to all topics (`mosquitto_sub -h 127.0.0.1 -t home/#`)
 
-### Squeezeboy / Musicbox / Multiroom Audio
+### Squeezebox / Musicbox / Multiroom Audio
 
-The squeezebox service is currently only a read on the state of the linux service
+The squeezebox service monitors the state of the local `squeezelite` service (started/stopped) and can (de)activate it on demand.
 
-Currently it needs to be installed manually but it will be integrated in a future release (into bash)
+`squeezelite` is installed automatically when you enable `squeezebox.active: True` in your config — both `run.sh` and the installation wizard handle this. The LMS server address is configured via `squeezebox.lmsServer` in `config.yaml` and applied to `/etc/default/squeezelite` on startup.
 
 ### Temperature & Humidity Sensor
 
@@ -545,7 +545,7 @@ In the future, instead of scanning a local directory, the registry will download
 - [x] Merge the configs read from `default_config.yaml` and `config.yaml` so one only needs to override the changes instead of copying all
 - [x] Read incoming mqtt messages and forward them to the correct service
 - [x] Write a guide on how to extend by creating own services
-- [ ] Implement automatic installation for squeezelite
+- [x] Implement automatic installation for squeezelite
 - [ ] Create a service for sending logging via MQTT, like `$baseOutTopic/$hostname/logging`
 - [ ] Implement ReadonlyService for reading / changing the readonly state
 - [ ] Add a feature for playing Audiobooks via RFID Cards / Tags (similar to the popular Audioboxes for kids)

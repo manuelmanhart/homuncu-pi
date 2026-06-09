@@ -20,6 +20,30 @@ if ! python3 -c "import lgpio" 2>/dev/null; then
     sudo apt install -y python3-lgpio
 fi
 
+# Check if squeezelite is needed (based on config), install and configure
+if [ -f "$BASE_DIR/config.yaml" ] && grep -q '^  squeezebox:' "$BASE_DIR/config.yaml"; then
+    if grep -A1 '^  squeezebox:' "$BASE_DIR/config.yaml" | grep -qi 'active:\s*true'; then
+        if ! command -v squeezelite &>/dev/null; then
+            echo "[INFO] Installing system package squeezelite..."
+            sudo apt install -y squeezelite
+        fi
+        # Copy template and configure LMS server
+        TEMPLATE="$BASE_DIR/templates/squeezelite.conf"
+        if [ -f "$TEMPLATE" ]; then
+            LMS_SERVER=$(grep -A2 '^  squeezebox:' "$BASE_DIR/config.yaml" | grep 'lmsServer:' | awk -F': ' '{print $2}' | tr -d '"' || true)
+            if [ -n "$LMS_SERVER" ]; then
+                echo "[INFO] Configuring squeezelite with LMS server $LMS_SERVER..."
+                sudo cp "$TEMPLATE" /etc/default/squeezelite
+                sudo sed -i "s/__LMS_SERVER__/$LMS_SERVER/g" /etc/default/squeezelite
+                if systemctl is-enabled squeezelite &>/dev/null; then
+                    sudo systemctl restart squeezelite
+                fi
+                echo "[INFO] Squeezelite configured"
+            fi
+        fi
+    fi
+fi
+
 # Create virtual environment (venv) if not exists
 if [ ! -d "$VENV_DIR" ]; then
     echo "[INFO] Creating virtual python environment..."

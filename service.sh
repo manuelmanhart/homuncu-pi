@@ -94,6 +94,18 @@ function uninstall() {
     echo "[INFO] Uninstallation successful!"
 }
 
+function start() {
+    echo "[INFO] Starting ${SERVICE_NAME} service..."
+    sudo systemctl start ${SERVICE_NAME}
+    echo "[INFO] Service started!"
+}
+
+function stop() {
+    echo "[INFO] Stopping ${SERVICE_NAME} service..."
+    sudo systemctl stop ${SERVICE_NAME}
+    echo "[INFO] Service stopped!"
+}
+
 function help() {
 	local progName=$(echo "$0" | rev | cut -d'/' -f1 | rev)
 

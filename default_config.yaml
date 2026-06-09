@@ -58,6 +58,7 @@ services:
     lmsServer: ""
   readonly:
     active: False
+    enableOnBoot: False
   shutdown:
     active: False
     viaMqtt: False

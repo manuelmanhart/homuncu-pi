@@ -480,6 +480,9 @@ In the future, instead of scanning a local directory, the registry will download
 
 ## Changelog
 
+**1.3.0**
+* Implemented readonly service to switch between readonly and readwrite mode - readonly is more lightweight & much safer for the sd card
+
 **1.2.0**
 * switched from pigpiod (deprecated on trixie and can cause sound issues) to lgpio & gpiozero (modern)
 * bugfix for non existing config file

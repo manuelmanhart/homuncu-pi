@@ -1,15 +1,9 @@
 import subprocess
 
 from app.services.abstract_modular_base_service import AbstractModularBaseService
+from app.services.modular.readonly_service import ReadOnlyService
 
-# GitRepoService
-# ------
-# Provides a simple interface to pull a configured git repository via MQTT commands.
-# Config keys (under services.git):
-#   repos: list of repo definitions, each with:
-#       name (str) – identifier used in incoming MQTT messages.
-#       path (str) – filesystem path of the repository.
-# MQTT: Listens for messages containing a JSON object with a "repo" field. On match, runs `git pull` in the configured path and logs the result.
+
 class GitRepoService(AbstractModularBaseService):
     def __init__(self, registry):
         super().__init__("git", registry)
@@ -31,12 +25,19 @@ class GitRepoService(AbstractModularBaseService):
             for r in config.get("repos", []):
                 if message.get("repo") == r.get("name"):
                     self.getLoggingService().info(self.name, f"updating repository {r.get("name")} now")
+
+                    readonly = self.getService(ReadOnlyService)
+                    was_readonly = readonly.ensure_readwrite()
+
                     workdir = r.get("path")
-                    result = subprocess.run(
-                        ["git", "pull"],
-                        cwd=workdir,
-                        capture_output=True,
-                        text=True
-                    )
-                    self.getLoggingService().info(self.name, f"result: {result}")
+                    try:
+                        result = subprocess.run(
+                            ["git", "pull"],
+                            cwd=workdir,
+                            capture_output=True,
+                            text=True
+                        )
+                        self.getLoggingService().info(self.name, f"result: {result}")
+                    finally:
+                        readonly.restore_readonly(was_readonly)
                     return

@@ -7,6 +7,7 @@ import tempfile
 import requests
 
 from app.services.abstract_sensor_service import AbstractSensorService
+from app.services.modular.readonly_service import ReadOnlyService
 
 class UpdateService(AbstractSensorService):
     def __init__(self, registry):
@@ -62,11 +63,15 @@ class UpdateService(AbstractSensorService):
             return {"error": str(e)}
 
     def _applySystemUpdates(self):
+        readonly = self.getService(ReadOnlyService)
+        was_readonly = readonly.ensure_readwrite()
         try:
             subprocess.run(["sudo", "apt", "full-upgrade", "-y"], check=False)
             self.getLoggingService().info(self.name, "system updates applied")
         except Exception as e:
             self.getLoggingService().error(self.name, f"system update failed: {e}")
+        finally:
+            readonly.restore_readonly(was_readonly)
 
     def _checkHomuncuUpdates(self) -> dict:
         channel = self.updateType
@@ -89,8 +94,10 @@ class UpdateService(AbstractSensorService):
             return {"error": str(e)}
 
     def _applyHomuncuUpdate(self, remote_version):
-        channel = self.updateType
+        readonly = self.getService(ReadOnlyService)
+        was_readonly = readonly.ensure_readwrite()
         try:
+            channel = self.updateType
             archive_name = f"homuncu-pi-{remote_version}.tar.gz"
             archive_url = f"{self.repoUrl}/{channel}/{archive_name}"
             self.getLoggingService().debug(self.name, f"downloading {archive_url}")
@@ -129,6 +136,8 @@ class UpdateService(AbstractSensorService):
             self.getLoggingService().info(self.name, "homuncu-pi update applied, restart recommended")
         except Exception as e:
             self.getLoggingService().error(self.name, f"update failed: {e}")
+        finally:
+            readonly.restore_readonly(was_readonly)
 
     def onMqttMessage(self, message):
         self.getLoggingService().info(self.name, f"got message {message}")

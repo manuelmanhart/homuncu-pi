@@ -55,6 +55,7 @@ services:
     autoupdate: "Off"
   squeezebox:
     active: False
+    lmsServer: ""
   readonly:
     active: False
   shutdown:

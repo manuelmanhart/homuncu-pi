@@ -44,7 +44,7 @@ class UpdateService(AbstractSensorService):
 
     def _checkSystemUpdates(self) -> dict:
         try:
-            self.getLoggingService().info(self.name, "checking system updates")
+            self.getLoggingService().debug(self.name, "checking system updates")
             output = subprocess.check_output(
                 ["apt", "-s", "full-upgrade"], stderr=subprocess.STDOUT
             ).decode("utf-8")
@@ -70,7 +70,7 @@ class UpdateService(AbstractSensorService):
 
     def _checkHomuncuUpdates(self) -> dict:
         channel = self.updateType
-        self.getLoggingService().info(self.name, f"checking homuncu-pi updates ({channel} channel)")
+        self.getLoggingService().debug(self.name, f"checking homuncu-pi updates ({channel} channel)")
         try:
             version_url = f"{self.repoUrl}/{channel}/VERSION"
             response = requests.get(version_url, timeout=5)
@@ -93,7 +93,7 @@ class UpdateService(AbstractSensorService):
         try:
             archive_name = f"homuncu-pi-{remote_version}.tar.gz"
             archive_url = f"{self.repoUrl}/{channel}/{archive_name}"
-            self.getLoggingService().info(self.name, f"downloading {archive_url}")
+            self.getLoggingService().debug(self.name, f"downloading {archive_url}")
             resp = requests.get(archive_url, timeout=120)
             if resp.status_code != 200:
                 self.getLoggingService().error(self.name, f"download failed: HTTP {resp.status_code}")

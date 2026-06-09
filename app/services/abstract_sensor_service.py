@@ -64,7 +64,7 @@ class AbstractSensorService(AbstractModularBaseService):
 
     def publishNewStateIfNeccessary(self, newState):
         try:
-            self.getLoggingService().debug(self.name, f"publishedState: {self.publishedState} -> newState: {newState}")
+            self.getLoggingService().info(self.name, f"publishedState: {self.publishedState} -> newState: {newState}")
             if newState != None and (self.publishedState == None or self.hasSignificantChange(self.publishedState, newState) or self.publishIntervalExceeded()):
                 self.getLoggingService().debug(self.name, f"publishing newState: {newState}")
                 self.publishState(newState)

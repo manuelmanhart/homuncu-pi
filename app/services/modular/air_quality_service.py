@@ -5,15 +5,22 @@ from app.services.modular.bme680_sensor_helper import Bme680Sensor
 class AirQualityService(AbstractSensorService):
     def __init__(self, registry):
         super().__init__("airQuality", registry)
+        self.sensor = False
 
     def onReady(self):
         config = self.getServiceConfig()
+        if self.active:
+            self.initSensor()
+        super().onReady()
+
+    def initSensor(self):
         self.gasTolerance = config.get("gasTolerance", 10000)
         self.i2c_addr = int(config.get("i2cAddr", "0x76"), 16)
         self.sensor = Bme680Sensor.get_instance(self.i2c_addr)
-        super().onReady()
 
     def readState(self):
+        if not self.sensor:
+            self.initSensor()
         if not self.sensor.read():
             return {"error": "BME680 read failed"}
         gas = self.sensor.gas_resistance

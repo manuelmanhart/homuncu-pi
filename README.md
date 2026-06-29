@@ -482,6 +482,9 @@ In the future, instead of scanning a local directory, the registry will download
 
 **1.3.0**
 * Implemented readonly service to switch between readonly and readwrite mode - readonly is more lightweight & much safer for the sd card
+* added support for BME680 sensor
+* added plausibility validation for temperature & humidity readings (`minTemp`, `maxTemp`, `maxPlausibleTempChange`, `minHumidity`, `maxHumidity`, `maxPlausibleHumidityChange`)
+* fixed a bug in reading the DHT22 / DHT11
 
 **1.2.0**
 * switched from pigpiod (deprecated on trixie and can cause sound issues) to lgpio & gpiozero (modern)

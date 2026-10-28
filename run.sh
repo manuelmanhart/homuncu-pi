@@ -7,7 +7,6 @@ VENV_DIR="$BASE_DIR/venv"
 REQ_FILE_NAME="requirements.txt"
 REQ_FILE_PATH="$BASE_DIR/$REQ_FILE_NAME"
 INSTALL_REQUIREMENTS=0
-PORT=8000
 VERSION=$(cat $BASE_DIR/VERSION)
 
 if [ "$1" == "-u" ]; then

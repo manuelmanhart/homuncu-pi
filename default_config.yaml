@@ -23,6 +23,12 @@ services:
     humidityCorrection75: 0
     temperatureCorrection: 0
     humidityTolerance: 4
+    minTemp: 0
+    maxTemp: 50
+    maxPlausibleTempChange: 3
+    minHumidity: 20
+    maxHumidity: 85
+    maxPlausibleHumidityChange: 7
     appendHostnameToTopic: True
   airQuality:
     active: False
@@ -66,6 +72,7 @@ services:
   readonly:
     active: False
     enableOnBoot: False
+    manageTmpfs: True
   shutdown:
     active: False
     viaMqtt: False

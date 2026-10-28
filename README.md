@@ -198,10 +198,107 @@ The squeezebox service monitors the state of the local `squeezelite` service (st
 
 ### Temperature & Humidity Sensor
 
-This is written for DHT22, but you can use DHT11 or AM2302 as well.
+Reads the sensor periodically and publishes readings via MQTT. Supports **DHT22**, **DHT11**, **AM2302** (via GPIO) and **BME680** (via I2C).
 
-1. Connect to 3.3V, GPIO 4, GND with a fitting cable
-2. Then configure the yaml file (section `temperature`)
+#### Wiring
+
+**DHT22 / DHT11 / AM2302:**
+
+```
+Raspberry Pi          Sensor
+3.3V (Pin 1)   ────  VCC
+GPIO 4 (Pin 7) ────  DATA
+GND  (Pin 6)   ────  GND
+```
+
+A 4.7kΩ–10kΩ pull-up resistor between DATA and VCC is recommended (some modules have this built-in).
+
+**BME680:**
+
+```
+Raspberry Pi          BME680
+3.3V (Pin 1)   ────  VIN
+GPIO 2 (Pin 3) ────  SDA
+GPIO 3 (Pin 5) ────  SCL
+GND  (Pin 6)   ────  GND
+```
+
+Default I2C address is `0x76` (SDO tied to GND) or `0x77` (SDO tied to 3.3V).
+
+#### Configuration
+
+```yaml
+temperature:
+  active: True
+  gpioPin: 4
+  sensorType: "DHT22"              # "DHT22", "DHT11", "BME680" or "" (empty = correction only)
+  i2cAddr: "0x76"                  # BME680 only
+  powerPin: null                   # Optional: BCM GPIO to switch sensor power via MOSFET/relay
+  pollInterval: 30
+  publishInterval: 600
+  temperatureTolerance: 0.5        # °C – minimum change to trigger an MQTT publish
+  humidityTolerance: 3             # %rH – minimum change to trigger an MQTT publish
+  temperatureCorrection: 0         # °C – additive correction offset
+  humidityCorrection40: 0          # %rH – reference point at 40 %rH (for linear correction)
+  humidityCorrection75: 0          # %rH – reference point at 75 %rH
+  # Validation / plausibility (optional, None = disabled)
+  minTemp: -10                     # °C – readings below are discarded
+  maxTemp: 60                      # °C – readings above are discarded
+  maxPlausibleTempChange: 5        # °C – maximum change from the last valid reading
+  minHumidity: 0                   # %rH – readings below are discarded
+  maxHumidity: 100                 # %rH – readings above are discarded
+  maxPlausibleHumidityChange: 20   # %rH – maximum change from the last valid reading
+  # DHT robustness
+  maxConsecutiveFailures: 5        # After N consecutive failed reads, the sensor is restarted
+  readRetries: 2                   # Number of trigger() attempts per read cycle
+  outlierAcceptCount: 3            # Number of consistent implausible readings to accept as new baseline
+  # MQTT topic formatting
+  appendHostnameToTopic: True      # Append hostname to the published MQTT topic
+```
+
+| Key | Default | Description |
+|-----|---------|-------------|
+| `active` | `False` | Enable the service |
+| `gpioPin` | `4` | BCM GPIO pin for DHT sensors |
+| `sensorType` | `"DHT22"` | `"DHT22"`, `"DHT11"`, `"BME680"` or `""` |
+| `i2cAddr` | `"0x76"` | I2C address (BME680 only) |
+| `powerPin` | `null` | Optional BCM GPIO to reset the power connection of the sensor if reading the values fails repeatedly (only used for DHT sensors) |
+| `pollInterval` | `30` | Seconds between sensor reads |
+| `publishInterval` | `600` | Seconds between forced MQTT publishes (even without change) |
+| `temperatureTolerance` | `0.5` | °C – minimum delta for immediate publish |
+| `humidityTolerance` | `3` | %rH – minimum delta for immediate publish |
+| `temperatureCorrection` | `0` | °C – additive offset (e.g. `-2.5` if readings are too high) |
+| `humidityCorrection40` | `0` | %rH – first reference point for linear humidity correction |
+| `humidityCorrection75` | `0` | %rH – second reference point |
+| `minTemp` / `maxTemp` | `null` | °C – absolute bounds; readings outside are discarded |
+| `maxPlausibleTempChange` | `null` | °C – maximum allowed difference from the previous valid reading |
+| `minHumidity` / `maxHumidity` | `null` | %rH – absolute bounds |
+| `maxPlausibleHumidityChange` | `null` | %rH – maximum allowed difference from the previous valid reading |
+| `maxConsecutiveFailures` | `5` | Number of consecutive failed DHT reads before `restartSensor()` is triggered |
+| `readRetries` | `2` | How many times to call `trigger()` before counting a read as failed |
+| `outlierAcceptCount` | `3` | If several consecutive readings are implausible but consistent with each other, they are accepted as a new baseline after this many occurrences |
+| `appendHostnameToTopic` | `True` | If `True`, the hostname is appended to the MQTT topic (as used by `AbstractSensorService`) |
+
+> **Validation:** All plausibility parameters are optional. As long as a value is not set in the config (`null`/empty), the corresponding check is skipped. Bounds are applied _after_ correction (`temperatureCorrection` / `humidityCorrection`). Plausible change checks compare against the last _valid_ reading – erroneous or discarded values do not shift the reference point. The outlier logic keeps a short "pending" outlier window: only when `outlierAcceptCount` consistent implausible values are seen in a row are they treated as a legitimate change and become the new baseline.
+
+#### MQTT Topic / Payload
+
+The service publishes to `<baseOutTopic>/<hostname>/temperature`:
+```json
+{
+  "temperature": 23.5,
+  "humidity": 45.2
+}
+```
+
+With BME680 the payload also includes pressure:
+```json
+{
+  "temperature": 23.5,
+  "humidity": 45.2,
+  "pressure": 1013.2
+}
+```
 
 ### PIR Sensor
 
@@ -255,6 +352,64 @@ Send a message to the configured input topic (e.g. `home/raspi`) to trigger a sh
 ```
 
 The service will execute `sudo shutdown now` and the Raspberry Pi will power off.
+
+### Readonly Mode
+
+The `readonly` service makes the Raspberry Pi more resilient to power outages by mounting the root filesystem read-only and putting volatile paths on `tmpfs`. It can be enabled at boot or switched on/off via MQTT, and exposes a context manager for other services to temporarily allow writes.
+
+#### How it works
+
+- **Root remount**: Switches `/` between read-only and read-write with `mount -o remount,ro/rw` (uses `sudo -n`).
+- **tmpfs mounts**: Optionally creates tmpfs mounts for paths like `/tmp`, `/var/tmp`, `/var/log`, `/var/spool/mail`, `/var/spool/rsyslog`, `/var/lib/logrotate`, `/var/lib/sudo` to keep logs and runtime files writable.
+- **Boot mounts**: Also remounts `/boot/firmware` and/or `/boot` read-only when enabling readonly mode.
+- **Random seed handling**: Symlinks `/var/lib/systemd/random-seed` to `/tmp/systemd-random-seed` when needed.
+- **Safe for other services**: Services can use `readonlyService.readwrite()` (context manager) to temporarily gain write access; nested/parallel calls are supported and readonly mode is restored only when the last hold is released.
+- **MQTT control**: Accepts actions `enable` and `disable` on the service's input topic.
+
+#### Configuration
+
+```yaml
+readonly:
+  active: False
+  enableOnBoot: False
+  manageTmpfs: True
+```
+
+| Key | Default | Description |
+|-----|---------|-------------|
+| `active` | `False` | Enable the service |
+| `enableOnBoot` | `False` | If `True`, switch to read-only mode once on startup (if not already read-only). It's more robust to set `ro` in `/etc/fstab` for boot-time read-only. |
+| `manageTmpfs` | `True` | If `True`, mount tmpfs for volatile paths at runtime. Set to `False` if these mounts are already configured in `/etc/fstab`. |
+
+#### Prerequisites (sudoers)
+
+The service runs `sudo -n` for several commands, so passwordless sudo entries are required for: `mount`, `test`, `mv`, `ln`, `rm`, `systemctl try-restart rsyslog`. Critical mounts like `/tmp` and `/var/log` must succeed if `manageTmpfs` is enabled; if mounting fails, the service will avoid going read-only to prevent breakage.
+
+#### Usage via MQTT
+
+Send a message to the configured input topic (e.g. `home/raspi`):
+
+```json
+{
+  "service": "readonly",
+  "action": "enable"
+}
+```
+
+```json
+{
+  "service": "readonly",
+  "action": "disable"
+}
+```
+
+#### Programmatic usage (for services)
+
+```python
+with self.getServiceRegistry().getService("readonly").readwrite():
+    # perform writes here
+    ...
+```
 
 ### Camera
 
@@ -481,10 +636,9 @@ In the future, instead of scanning a local directory, the registry will download
 ## Changelog
 
 **1.3.0**
-* Implemented readonly service to switch between readonly and readwrite mode - readonly is more lightweight & much safer for the sd card
-* added support for BME680 sensor
-* added plausibility validation for temperature & humidity readings (`minTemp`, `maxTemp`, `maxPlausibleTempChange`, `minHumidity`, `maxHumidity`, `maxPlausibleHumidityChange`)
-* fixed a bug in reading the DHT22 / DHT11
+* Implemented readonly service to switch between readonly and readwrite mode - readonly is more lightweight & much safer for the sd card (untested)
+* added support for BME680 sensor - temperature, humidity and air quality readings (untested)
+* reworked temperature service to improve the stability by a lot
 
 **1.2.0**
 * switched from pigpiod (deprecated on trixie and can cause sound issues) to lgpio & gpiozero (modern)

@@ -1,7 +1,6 @@
 from app.services.abstract_sensor_service import AbstractSensorService
 from app.services.modular.bme680_sensor_helper import Bme680Sensor
 
-
 class AirQualityService(AbstractSensorService):
     def __init__(self, registry):
         super().__init__("airQuality", registry)

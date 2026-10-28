@@ -5,7 +5,6 @@ set -e
 SERVICE_NAME="homuncu-pi"
 WORK_DIR="$(cd "$(dirname "$0")"; pwd)"
 #USER="manuel"        # ggf. anpassen (z. B. dein Linux-User)
-PORT=8000
 SERVICE_FILE_NAME="${SERVICE_NAME}.service"
 SERVICE_FILE_PATH="/etc/systemd/system/${SERVICE_FILE_NAME}"
 HELP_PATH=${BASH_SOURCE%/*}/help
